@@ -1,0 +1,26 @@
+{
+  "name": "@ai-ide-agent/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "ai-ide-agent": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --tsconfig tsconfig.build.json --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-ide-agent/agent-core": "0.1.0",
+    "@ai-ide-agent/providers": "0.1.0",
+    "@ai-ide-agent/storage": "0.1.0"
+  }
+}
