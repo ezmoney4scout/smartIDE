@@ -10,10 +10,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "node scripts/run-if-workspaces.mjs npm run build --workspaces --if-present",
     "test": "vitest run",
-    "typecheck": "tsc -b packages/protocol packages/providers packages/storage packages/agent-core packages/cli apps/extension",
-    "lint": "tsc -b packages/protocol packages/providers packages/storage packages/agent-core packages/cli apps/extension --pretty false",
+    "typecheck": "node scripts/typecheck-workspaces.mjs",
+    "lint": "node scripts/typecheck-workspaces.mjs --pretty false",
     "demo": "node packages/cli/dist/index.js"
   },
   "devDependencies": {
