@@ -10,9 +10,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "node scripts/run-if-workspaces.mjs npm run build --workspaces --if-present",
-    "test": "vitest run",
-    "typecheck": "node scripts/typecheck-workspaces.mjs",
+    "build": "node scripts/build-workspaces.mjs",
+    "test": "node scripts/build-workspaces.mjs && vitest run",
+    "typecheck": "node scripts/build-workspaces.mjs && node scripts/typecheck-workspaces.mjs",
     "lint": "node scripts/typecheck-workspaces.mjs --pretty false",
     "demo": "node packages/cli/dist/index.js"
   },
