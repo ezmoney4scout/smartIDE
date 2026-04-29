@@ -1,0 +1,34 @@
+{
+  "name": "ai-ide-agent-extension",
+  "displayName": "AI IDE Agent",
+  "description": "Local-first AI IDE Agent for VS Code-compatible editors.",
+  "version": "0.1.0",
+  "publisher": "ai-ide-agent",
+  "type": "module",
+  "main": "dist/extension.js",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onCommand:aiIdeAgent.openPanel"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiIdeAgent.openPanel",
+        "title": "AI IDE Agent: Open Panel"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsup src/extension.ts --format esm --external vscode --tsconfig tsconfig.build.json --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-ide-agent/agent-core": "0.1.0",
+    "@ai-ide-agent/providers": "0.1.0",
+    "@ai-ide-agent/storage": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.96.0"
+  }
+}
