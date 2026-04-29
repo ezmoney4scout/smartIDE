@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createMockProvider, createProviderFromPreset, ProviderRegistry, providerPresets } from "../src/index.js";
+import {
+  createMockProvider,
+  createProviderFromRuntimeConfig,
+  createProviderFromPreset,
+  ProviderRegistry,
+  providerPresets,
+  resolveProviderRuntimeConfig
+} from "../src/index.js";
 
 describe("ProviderRegistry", () => {
   it("registers and retrieves providers by id", async () => {
@@ -34,6 +41,41 @@ describe("ProviderRegistry", () => {
     expect(glm.displayName).toBe("GLM");
     await expect(glm.listModels()).resolves.toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "glm-5.1" })])
+    );
+  });
+
+  it("resolves provider runtime config from generic and provider-specific env vars", () => {
+    const kimi = resolveProviderRuntimeConfig({
+      AI_IDE_AGENT_PROVIDER: "kimi",
+      KIMI_API_KEY: "kimi-key",
+      AI_IDE_AGENT_MODEL: "kimi-custom"
+    });
+    const glm = resolveProviderRuntimeConfig({
+      AI_IDE_AGENT_PROVIDER: "glm",
+      GLM_API_KEY: "glm-key"
+    });
+
+    expect(kimi).toMatchObject({
+      provider: "kimi",
+      apiKey: "kimi-key",
+      defaultModel: "kimi-custom"
+    });
+    expect(glm).toMatchObject({
+      provider: "glm",
+      apiKey: "glm-key"
+    });
+  });
+
+  it("creates providers from runtime config", async () => {
+    const provider = createProviderFromRuntimeConfig({
+      provider: "minimax",
+      apiKey: "minimax-key",
+      defaultModel: "MiniMax-custom"
+    });
+
+    expect(provider.id).toBe("minimax");
+    await expect(provider.listModels()).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "MiniMax-custom" })])
     );
   });
 });

@@ -17,7 +17,33 @@
         "command": "aiIdeAgent.openPanel",
         "title": "AI IDE Agent: Open Panel"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "AI IDE Agent",
+      "properties": {
+        "aiIdeAgent.provider": {
+          "type": "string",
+          "default": "mock",
+          "enum": ["mock", "openai-compatible", "minimax", "kimi", "glm"],
+          "description": "LLM provider used by AI IDE Agent."
+        },
+        "aiIdeAgent.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the selected provider. Environment variables are recommended for shared workspaces."
+        },
+        "aiIdeAgent.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL for OpenAI-compatible providers or provider overrides."
+        },
+        "aiIdeAgent.defaultModel": {
+          "type": "string",
+          "default": "",
+          "description": "Default model for the selected provider."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "tsup src/extension.ts --format esm --external vscode --tsconfig tsconfig.build.json --clean",

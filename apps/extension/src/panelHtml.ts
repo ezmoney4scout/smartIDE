@@ -4,6 +4,7 @@ export interface PanelViewModel {
   contextCount: number;
   changeCapsuleCount: number;
   verificationStatus: string;
+  providerName?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -19,6 +20,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const state = escapeHtml(viewModel.state);
   const taskGoal = escapeHtml(viewModel.taskGoal);
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
+  const providerName = escapeHtml(viewModel.providerName ?? "Mock");
 
   return `<!doctype html>
 <html lang="en">
@@ -89,6 +91,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       <header>
         <h1>AI IDE Agent</h1>
         <p class="meta">State: <span class="value">${state}</span></p>
+        <p class="meta">Provider: <span class="value">${providerName}</span></p>
       </header>
 
       <section aria-labelledby="task-spec-title">

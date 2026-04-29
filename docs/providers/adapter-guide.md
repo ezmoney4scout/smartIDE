@@ -58,6 +58,20 @@ Adapters receive provider configuration through `ProviderConfig`. API keys may b
 
 `validateConfig` should check that required runtime fields are present and return a user-facing result. It should not make live network calls unless the caller has explicitly requested live validation.
 
+Runtime configuration is centralized through `ProviderRuntimeConfig`:
+
+```ts
+import {
+  createProviderFromRuntimeConfig,
+  resolveProviderRuntimeConfig
+} from "@ai-ide-agent/providers";
+
+const config = resolveProviderRuntimeConfig(process.env);
+const provider = createProviderFromRuntimeConfig(config);
+```
+
+The generic environment variables are `AI_IDE_AGENT_PROVIDER`, `AI_IDE_AGENT_API_KEY`, `AI_IDE_AGENT_BASE_URL`, and `AI_IDE_AGENT_MODEL`. Provider-specific API key fallbacks are `MINIMAX_API_KEY`, `KIMI_API_KEY`, and `GLM_API_KEY`.
+
 ## Testing
 
 Default tests must run without real provider credentials. Prefer mock `fetch` behavior, local fixtures, or the Mock provider when validating adapter shape and registry behavior.
