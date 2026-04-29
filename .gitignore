@@ -1,4 +1,6 @@
 .superpowers/
+.worktrees/
+.ai-ide-agent/
 node_modules/
 dist/
 out/
