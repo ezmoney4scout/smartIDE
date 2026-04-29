@@ -1,0 +1,26 @@
+{
+  "name": "ai-ide-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source local-first AI IDE Agent platform.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "typecheck": "tsc -b packages/protocol packages/providers packages/storage packages/agent-core packages/cli apps/extension",
+    "lint": "tsc -b packages/protocol packages/providers packages/storage packages/agent-core packages/cli apps/extension --pretty false",
+    "demo": "node packages/cli/dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.96.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

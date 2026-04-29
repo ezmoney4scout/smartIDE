@@ -1,0 +1,10 @@
+.git/**
+.superpowers/**
+node_modules/**
+packages/**/src/**
+packages/**/test/**
+apps/extension/src/**
+apps/extension/test/**
+coverage/**
+docs/superpowers/**
+*.map
