@@ -1,0 +1,21 @@
+{
+  "name": "@ai-ide-agent/storage",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --tsconfig tsconfig.build.json --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-ide-agent/protocol": "0.1.0"
+  }
+}
