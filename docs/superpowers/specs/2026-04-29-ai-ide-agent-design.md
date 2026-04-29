@@ -92,6 +92,9 @@ Editor Extension
             -> Gemini Provider
             -> DeepSeek Provider
             -> Qwen Provider
+            -> Minimax Provider
+            -> Kimi Provider
+            -> GLM Provider
             -> Ollama Provider
             -> OpenAI-Compatible Provider
 ```
@@ -199,6 +202,9 @@ Default provider targets:
 - Google Gemini
 - DeepSeek
 - Qwen
+- Minimax
+- Kimi / Moonshot AI
+- GLM / Zhipu AI
 - Ollama
 - OpenAI-compatible endpoints
 - Local model runtimes that can expose a compatible API

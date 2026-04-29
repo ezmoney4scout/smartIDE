@@ -18,7 +18,7 @@ Phase 1 produces testable software on its own:
 
 - Workspace can install and build.
 - Protocol contracts compile.
-- Provider registry can register and route to mock and OpenAI-compatible providers.
+- Provider registry can register and route to mock, OpenAI-compatible, Minimax, Kimi, and GLM provider presets.
 - Agent Core can create a task lifecycle with Context Ledger, Task Spec, Change Capsule summary, Verification status, and Memory proposal.
 - CLI can run a local demo task against a sample workspace.
 - VS Code-compatible extension can open a webview panel and show a demo lifecycle from Agent Core.
@@ -51,6 +51,7 @@ packages/providers/tsconfig.json
 packages/providers/src/index.ts
 packages/providers/src/mockProvider.ts
 packages/providers/src/openAiCompatibleProvider.ts
+packages/providers/src/providerPresets.ts
 packages/providers/test/providerRegistry.test.ts
 
 packages/storage/package.json
@@ -76,7 +77,7 @@ docs/contributors/development.md
 Responsibilities:
 
 - `packages/protocol`: Shared types for tasks, context ledger, providers, verification, memory, and events.
-- `packages/providers`: Provider contract, registry, mock provider, and OpenAI-compatible adapter.
+- `packages/providers`: Provider contract, registry, mock provider, OpenAI-compatible adapter, and presets for Minimax, Kimi, and GLM.
 - `packages/storage`: Local JSON storage for project memory and task history.
 - `packages/agent-core`: Orchestrates Phase 1 task lifecycle.
 - `packages/cli`: Local demo entrypoint for contributor testing.
@@ -521,6 +522,7 @@ git commit -m "feat: define shared protocol contracts"
 - Create: `packages/providers/src/index.ts`
 - Create: `packages/providers/src/mockProvider.ts`
 - Create: `packages/providers/src/openAiCompatibleProvider.ts`
+- Create: `packages/providers/src/providerPresets.ts`
 - Create: `packages/providers/test/providerRegistry.test.ts`
 
 - [ ] **Step 1: Create providers package manifest**
@@ -565,7 +567,7 @@ Create `packages/providers/test/providerRegistry.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { createMockProvider, ProviderRegistry } from "../src/index.js";
+import { createMockProvider, createProviderFromPreset, ProviderRegistry, providerPresets } from "../src/index.js";
 
 describe("ProviderRegistry", () => {
   it("registers and retrieves providers by id", async () => {
@@ -585,6 +587,22 @@ describe("ProviderRegistry", () => {
     const registry = new ProviderRegistry();
 
     expect(() => registry.require("missing")).toThrow("Provider not registered: missing");
+  });
+
+  it("creates Minimax, Kimi, and GLM providers from presets", async () => {
+    const minimax = createProviderFromPreset("minimax", { apiKey: "test-key" });
+    const kimi = createProviderFromPreset("kimi", { apiKey: "test-key" });
+    const glm = createProviderFromPreset("glm", { apiKey: "test-key" });
+
+    expect(providerPresets.map((preset) => preset.id)).toEqual(
+      expect.arrayContaining(["minimax", "kimi", "glm"])
+    );
+    expect(minimax.displayName).toBe("Minimax");
+    expect(kimi.displayName).toBe("Kimi");
+    expect(glm.displayName).toBe("GLM");
+    await expect(glm.listModels()).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "glm-5.1" })])
+    );
   });
 });
 ```
@@ -663,6 +681,8 @@ export const baselineCapabilities: ProviderCapabilities = {
 
 export { createMockProvider } from "./mockProvider.js";
 export { createOpenAiCompatibleProvider } from "./openAiCompatibleProvider.js";
+export { createProviderFromPreset, providerPresets } from "./providerPresets.js";
+export type { ProviderPreset, ProviderPresetId } from "./providerPresets.js";
 ```
 
 - [ ] **Step 6: Implement mock provider**
@@ -819,13 +839,75 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions)
       if (!config.baseUrl && !options.baseUrl) {
         return { ok: false, message: "Missing baseUrl for OpenAI-compatible provider." };
       }
+      if (!config.apiKey && !options.apiKey) {
+        return { ok: false, message: "Missing apiKey for OpenAI-compatible provider." };
+      }
       return { ok: true, message: "Provider configuration is valid." };
     }
   };
 }
 ```
 
-- [ ] **Step 8: Run provider tests**
+- [ ] **Step 8: Implement provider presets**
+
+Create `packages/providers/src/providerPresets.ts`:
+
+```ts
+import type { ProviderConfig } from "@ai-ide-agent/protocol";
+import type { ModelProvider } from "./index.js";
+import { createOpenAiCompatibleProvider } from "./openAiCompatibleProvider.js";
+
+export type ProviderPresetId = "minimax" | "kimi" | "glm";
+
+export interface ProviderPreset {
+  id: ProviderPresetId;
+  displayName: string;
+  baseUrl: string;
+  defaultModel: string;
+  docsUrl: string;
+}
+
+export const providerPresets: ProviderPreset[] = [
+  {
+    id: "minimax",
+    displayName: "Minimax",
+    baseUrl: "https://api.minimax.io/v1",
+    defaultModel: "MiniMax-M2.7",
+    docsUrl: "https://platform.minimax.io/docs/api-reference/text-openai-api"
+  },
+  {
+    id: "kimi",
+    displayName: "Kimi",
+    baseUrl: "https://api.moonshot.ai/v1",
+    defaultModel: "kimi-k2.5",
+    docsUrl: "https://platform.kimi.ai/docs/api/overview"
+  },
+  {
+    id: "glm",
+    displayName: "GLM",
+    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+    defaultModel: "glm-5.1",
+    docsUrl: "https://docs.bigmodel.cn/cn/guide/develop/openai/introduction"
+  }
+];
+
+export function createProviderFromPreset(id: ProviderPresetId, config: ProviderConfig): ModelProvider {
+  const preset = providerPresets.find((candidate) => candidate.id === id);
+  if (!preset) {
+    throw new Error(`Provider preset not found: ${id}`);
+  }
+
+  return createOpenAiCompatibleProvider({
+    id: preset.id,
+    displayName: preset.displayName,
+    baseUrl: config.baseUrl ?? preset.baseUrl,
+    apiKey: config.apiKey,
+    defaultModel: config.defaultModel ?? preset.defaultModel
+  });
+}
+```
+
+- [ ] **Step 9: Run provider tests**
 
 Run:
 
@@ -835,7 +917,7 @@ npx vitest run packages/providers/test/providerRegistry.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 9: Build providers package**
+- [ ] **Step 10: Build providers package**
 
 Run:
 
@@ -845,7 +927,7 @@ npm run build -w @ai-ide-agent/providers
 
 Expected: provider package builds.
 
-- [ ] **Step 10: Commit providers package**
+- [ ] **Step 11: Commit providers package**
 
 ```bash
 git add packages/providers
@@ -1736,6 +1818,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Provider adapter contract
 - Mock provider
 - OpenAI-compatible provider adapter
+- Minimax, Kimi, and GLM provider presets
 - Context Ledger model
 - Task Spec model
 - Change Capsule model
@@ -1814,6 +1897,7 @@ Phase 1 includes:
 
 - Mock provider for deterministic tests
 - OpenAI-compatible provider for providers that expose `/chat/completions`
+- Presets for Minimax, Kimi, and GLM using OpenAI-compatible chat completion semantics
 ```
 
 - [ ] **Step 3: Create contributor development guide**
@@ -1935,7 +2019,7 @@ Spec coverage:
 
 - VS Code-compatible extension shell: Task 7.
 - Local Agent Core: Task 5.
-- Provider API and mainstream model adapter path: Task 3.
+- Provider API and mainstream model adapter path, including Minimax, Kimi, and GLM presets: Task 3.
 - Context Ledger, Task Spec, Change Capsules, Verification Evidence, Memory Proposal models: Task 2 and Task 5.
 - Local-first storage: Task 4.
 - CLI demo for contributor testing: Task 6.
