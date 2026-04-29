@@ -1,0 +1,9 @@
+.superpowers/
+node_modules/
+dist/
+out/
+coverage/
+.DS_Store
+.env
+.env.*
+!.env.example
