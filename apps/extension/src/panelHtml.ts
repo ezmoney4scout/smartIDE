@@ -1,4 +1,4 @@
-import type { VerificationEvidence } from "@ai-ide-agent/protocol";
+import type { ContextLedgerEntry, VerificationEvidence } from "@ai-ide-agent/protocol";
 
 export interface PanelViewModel {
   state: string;
@@ -6,6 +6,7 @@ export interface PanelViewModel {
   contextCount: number;
   changeCapsuleCount: number;
   verificationStatus: string;
+  contextLedger?: ContextLedgerEntry[];
   providerName?: string;
   modelName?: string;
   providerStatusMessage?: string;
@@ -37,6 +38,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
     .map(escapeHtml);
+  const contextLedger = viewModel.contextLedger ?? [];
   const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
   const verificationCommands = (viewModel.verificationCommands ?? []).map(escapeHtml);
   const verificationResults = viewModel.verificationResults ?? [];
@@ -150,6 +152,34 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         color: var(--vscode-errorForeground);
       }
 
+      .ledger-list {
+        display: grid;
+        gap: 10px;
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+      }
+
+      .ledger-entry {
+        border-left: 3px solid var(--vscode-panel-border);
+        padding-left: 10px;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 6px 0;
+      }
+
+      .badge {
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 4px;
+        padding: 2px 6px;
+        color: var(--vscode-descriptionForeground);
+        font-size: 12px;
+      }
+
       pre {
         overflow-x: auto;
         border-radius: 4px;
@@ -206,6 +236,22 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       <section aria-labelledby="context-ledger-title">
         <h2 id="context-ledger-title">Context Ledger</h2>
         <p><span class="value">${viewModel.contextCount}</span> context entries captured for this task.</p>
+        ${contextLedger.length > 0
+          ? `<ul class="ledger-list">
+          ${contextLedger
+            .map((entry) => `<li class="ledger-entry">
+              <p><span class="value">${escapeHtml(entry.path)}</span></p>
+              <div class="badges">
+                <span class="badge">${escapeHtml(entry.source)}</span>
+                <span class="badge">${entry.tokens} tokens</span>
+                ${entry.pinned ? `<span class="badge">pinned</span>` : ""}
+                ${entry.excluded ? `<span class="badge">excluded</span>` : ""}
+              </div>
+              <p class="meta">${escapeHtml(entry.reason)}</p>
+            </li>`)
+            .join("")}
+        </ul>`
+          : ""}
       </section>
 
       <section aria-labelledby="change-capsules-title">

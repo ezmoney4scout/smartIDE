@@ -22,6 +22,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - OpenAI-compatible provider adapter
 - Minimax, Kimi, and GLM provider presets
 - Context Ledger model
+- Full Context Ledger panel entries
 - Task Spec model
 - Change Capsule model
 - Verification evidence model
@@ -102,7 +103,7 @@ Source code stays in the local workspace. API keys should be stored through edit
 
 ## Agent Task Flow
 
-The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows the verification commands that may run. Users can choose **Apply & Run Verification** or **Apply Without Verification**. Verification output is shown in the panel and truncated before rendering to keep the UI responsive.
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. It shows the Context Ledger entries used for the task, including path, source, reason, token estimate, and pinned/excluded flags. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows the verification commands that may run. Users can choose **Apply & Run Verification** or **Apply Without Verification**. Verification output is shown in the panel and truncated before rendering to keep the UI responsive.
 
 Provider responses can drive real source edits by returning structured JSON:
 
@@ -140,7 +141,6 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 ## Roadmap
 
-- Full Context Ledger UI
 - Provider settings UI
 - Verification runners
 - Debug Hypothesis Mode

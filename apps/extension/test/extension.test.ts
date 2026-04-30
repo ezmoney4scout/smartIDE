@@ -13,6 +13,26 @@ describe("extension panel HTML", () => {
       modelName: "kimi-k2.5",
       providerStatusMessage: "Kimi requires an API key.",
       providerReady: false,
+      contextLedger: [
+        {
+          id: "memory:project-memory",
+          path: "project-memory",
+          reason: "loaded project memory",
+          source: "memory",
+          tokens: 128,
+          pinned: false,
+          excluded: false
+        },
+        {
+          id: "indexed:src/legacy.ts",
+          path: "src/legacy.ts",
+          reason: "ignored by task scope",
+          source: "indexed",
+          tokens: 0,
+          pinned: true,
+          excluded: true
+        }
+      ],
       proposalPath: ".ai-ide-agent/proposals/task.md",
       proposalPaths: ["src/one.ts", "src/two.ts"],
       riskNote: "Review 2 files before applying.",
@@ -34,6 +54,12 @@ describe("extension panel HTML", () => {
     expect(html).toContain("textarea");
     expect(html).toContain("runTask");
     expect(html).toContain("Context Ledger");
+    expect(html).toContain("project-memory");
+    expect(html).toContain("loaded project memory");
+    expect(html).toContain("memory");
+    expect(html).toContain("128 tokens");
+    expect(html).toContain("pinned");
+    expect(html).toContain("excluded");
     expect(html).toContain("Task Spec");
     expect(html).toContain("Change Capsules");
     expect(html).toContain("Verification Gate");

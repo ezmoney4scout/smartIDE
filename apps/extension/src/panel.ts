@@ -77,6 +77,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       state: currentLifecycle?.state ?? "Draft",
       taskGoal: currentLifecycle?.taskSpec.goal ?? "",
       contextCount: currentLifecycle?.contextLedger.length ?? 0,
+      contextLedger: currentLifecycle?.contextLedger,
       changeCapsuleCount: currentLifecycle?.changeCapsules.length ?? 0,
       verificationStatus: verificationResults[0]?.status ?? currentLifecycle?.verification[0]?.status ?? "skipped",
       providerName: providerStatus.providerLabel,
