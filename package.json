@@ -14,11 +14,13 @@
     "test": "node scripts/build-workspaces.mjs && vitest run",
     "typecheck": "node scripts/build-workspaces.mjs && node scripts/typecheck-workspaces.mjs",
     "lint": "node scripts/typecheck-workspaces.mjs --pretty false",
-    "demo": "node packages/cli/dist/index.js"
+    "demo": "node packages/cli/dist/index.js",
+    "package:extension": "npm run build && npm run package:vsix -w apps/extension"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.9.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

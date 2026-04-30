@@ -40,6 +40,14 @@ npm run build
 npm run demo
 ```
 
+To build an installable VS Code package:
+
+```bash
+npm run package:extension
+```
+
+The VSIX is written to `dist/vsix/smartide-0.1.0.vsix` and can be installed through **Extensions: Install from VSIX...** in VS Code.
+
 ## Provider Configuration
 
 The project can run with a local mock provider, hosted OpenAI-compatible providers, or built-in presets for Minimax, Kimi, and GLM.
