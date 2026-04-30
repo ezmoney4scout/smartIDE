@@ -1,3 +1,5 @@
+import type { VerificationEvidence } from "@ai-ide-agent/protocol";
+
 export interface PanelViewModel {
   state: string;
   taskGoal: string;
@@ -9,6 +11,7 @@ export interface PanelViewModel {
   proposalPath?: string;
   proposalPaths?: string[];
   riskNote?: string;
+  verificationResults?: VerificationEvidence[];
 }
 
 function escapeHtml(value: string): string {
@@ -29,6 +32,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
     .map(escapeHtml);
   const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
+  const verificationResults = viewModel.verificationResults ?? [];
 
   return `<!doctype html>
 <html lang="en">
@@ -138,6 +142,14 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       .error {
         color: var(--vscode-errorForeground);
       }
+
+      pre {
+        overflow-x: auto;
+        border-radius: 4px;
+        padding: 10px;
+        background: var(--vscode-textCodeBlock-background);
+        white-space: pre-wrap;
+      }
     </style>
   </head>
   <body>
@@ -188,6 +200,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       <section aria-labelledby="verification-gate-title">
         <h2 id="verification-gate-title">Verification Gate</h2>
         <p>Current status: <span class="value">${verificationStatus}</span></p>
+        ${verificationResults.length > 0
+          ? `<ul>
+          ${verificationResults
+            .map((result) => `<li>
+              <p><span class="value">${escapeHtml(result.label)}</span>: ${escapeHtml(result.status)}</p>
+              ${result.output ? `<pre>${escapeHtml(result.output)}</pre>` : ""}
+            </li>`)
+            .join("")}
+        </ul>`
+          : ""}
       </section>
     </main>
     <script>

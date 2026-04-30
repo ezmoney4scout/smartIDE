@@ -11,7 +11,15 @@ describe("extension panel HTML", () => {
       verificationStatus: "skipped",
       proposalPath: ".ai-ide-agent/proposals/task.md",
       proposalPaths: ["src/one.ts", "src/two.ts"],
-      riskNote: "Review 2 files before applying."
+      riskNote: "Review 2 files before applying.",
+      verificationResults: [
+        {
+          kind: "test",
+          label: "npm test",
+          status: "passed",
+          output: "15 passed"
+        }
+      ]
     });
 
     expect(html).toContain("AI IDE Agent");
@@ -21,6 +29,8 @@ describe("extension panel HTML", () => {
     expect(html).toContain("Task Spec");
     expect(html).toContain("Change Capsules");
     expect(html).toContain("Verification Gate");
+    expect(html).toContain("npm test");
+    expect(html).toContain("15 passed");
     expect(html).toContain("Preview Diff");
     expect(html).toContain("Apply Change");
     expect(html).toContain("Review 2 files before applying.");

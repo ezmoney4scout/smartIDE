@@ -6,6 +6,8 @@ import { createFileProposal, type FileProposal } from "./fileProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
 import { resolveExtensionProviderRuntimeConfig } from "./settings.js";
 import { createSourceChangeProposal, type SourceChangeProposal } from "./sourceChangeProposal.js";
+import { runVerificationCommands } from "./verificationRunner.js";
+import type { TaskLifecycle, VerificationEvidence } from "@ai-ide-agent/protocol";
 
 interface RunTaskMessage {
   type: "runTask";
@@ -60,6 +62,47 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   const provider = createProviderFromRuntimeConfig(providerConfig);
   let pendingProposal: FileProposal | undefined;
   let pendingSourceChanges: SourceChangeProposal[] = [];
+  let currentLifecycle: TaskLifecycle | undefined;
+  let verificationResults: VerificationEvidence[] = [];
+
+  function renderCurrentPanel(errorMessage?: string): void {
+    panel.webview.html = renderPanelHtml({
+      state: currentLifecycle?.state ?? "Draft",
+      taskGoal: currentLifecycle?.taskSpec.goal ?? "",
+      contextCount: currentLifecycle?.contextLedger.length ?? 0,
+      changeCapsuleCount: currentLifecycle?.changeCapsules.length ?? 0,
+      verificationStatus: verificationResults[0]?.status ?? currentLifecycle?.verification[0]?.status ?? "skipped",
+      providerName: provider.displayName,
+      errorMessage,
+      proposalPath: pendingSourceChanges[0]?.targetPath ?? pendingProposal?.relativePath,
+      proposalPaths: pendingSourceChanges.length > 0
+        ? pendingSourceChanges.map((sourceChange) => sourceChange.targetPath)
+        : pendingProposal
+          ? [pendingProposal.relativePath]
+          : undefined,
+      riskNote: pendingSourceChanges.length > 0 || pendingProposal
+        ? `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
+        : undefined,
+      verificationResults
+    });
+  }
+
+  async function runVerificationPlan(): Promise<void> {
+    if (!currentLifecycle) {
+      return;
+    }
+
+    verificationResults = await runVerificationCommands({
+      commands: currentLifecycle.taskSpec.verificationPlan.commands,
+      cwd: workspaceRoot
+    });
+    currentLifecycle = {
+      ...currentLifecycle,
+      verification: verificationResults,
+      state: verificationResults.every((result) => result.status === "passed") ? "Verified" : "Needs Review"
+    };
+    renderCurrentPanel();
+  }
 
   const panel = vscodeApi.window.createWebviewPanel(
     "aiIdeAgent",
@@ -130,6 +173,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
           await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(sourceChange.proposedContent));
         }
         await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChanges.length} file(s).`);
+        await runVerificationPlan();
         return;
       }
 
@@ -144,6 +188,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       await vscodeApi.workspace.fs.createDirectory(targetDirectoryUri);
       await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(markdownProposal.content));
       await vscodeApi.window.showInformationMessage(`smartIDE wrote ${markdownProposal.relativePath}`);
+      await runVerificationPlan();
       return;
     }
 
@@ -177,6 +222,8 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         providers,
         store: new LocalProjectStore(workspaceRoot)
       });
+      currentLifecycle = lifecycle;
+      verificationResults = [];
       pendingProposal = createFileProposal({
         taskId: lifecycle.taskSpec.taskId,
         lifecycle
@@ -192,19 +239,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         }));
       }
 
-      panel.webview.html = renderPanelHtml({
-        state: lifecycle.state,
-        taskGoal: lifecycle.taskSpec.goal,
-        contextCount: lifecycle.contextLedger.length,
-        changeCapsuleCount: lifecycle.changeCapsules.length,
-        verificationStatus: lifecycle.verification[0]?.status ?? "skipped",
-        providerName: provider.displayName,
-        proposalPath: pendingSourceChanges[0]?.targetPath ?? pendingProposal.relativePath,
-        proposalPaths: pendingSourceChanges.length > 0
-          ? pendingSourceChanges.map((sourceChange) => sourceChange.targetPath)
-          : [pendingProposal.relativePath],
-        riskNote: `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
-      });
+      renderCurrentPanel();
     } catch (error) {
       panel.webview.html = renderPanelHtml({
         state: "Blocked",

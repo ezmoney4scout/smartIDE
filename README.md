@@ -79,7 +79,7 @@ Source code stays in the local workspace. API keys should be stored through edit
 
 ## Agent Task Flow
 
-The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares a source-file change proposal for the first planned file. Users can preview the original file against the proposed content with VS Code's diff view before applying it. Applying writes the proposed content back to that workspace file, keeping source edits behind an explicit confirmation step.
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. Users can preview original files against proposed content with VS Code's diff view before applying. Applying writes the proposed content back to the workspace files, then runs the lifecycle verification commands and shows pass/fail evidence in the panel.
 
 Provider responses can drive real source edits by returning structured JSON:
 
@@ -96,7 +96,7 @@ Provider responses can drive real source edits by returning structured JSON:
 }
 ```
 
-The older single-file `{ "targetPath", "proposedContent", "summary" }` shape is still supported. If the response is not valid structured patch JSON, smartIDE falls back to a safe local proposal note so the user still gets a reviewable diff instead of an untrusted write.
+The older single-file `{ "targetPath", "proposedContent", "summary" }` shape is still supported. If the response is not valid structured patch JSON, smartIDE falls back to a safe local proposal note so the user still gets a reviewable diff instead of an untrusted write. Verification output is truncated before rendering to keep the panel responsive.
 
 ## Open Source Status
 
