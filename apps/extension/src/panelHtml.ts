@@ -11,6 +11,7 @@ export interface PanelViewModel {
   proposalPath?: string;
   proposalPaths?: string[];
   riskNote?: string;
+  verificationCommands?: string[];
   verificationResults?: VerificationEvidence[];
 }
 
@@ -32,6 +33,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
     .map(escapeHtml);
   const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
+  const verificationCommands = (viewModel.verificationCommands ?? []).map(escapeHtml);
   const verificationResults = viewModel.verificationResults ?? [];
 
   return `<!doctype html>
@@ -175,9 +177,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <ul>
           ${proposalPaths.map((path) => `<li><span class="value">${path}</span></li>`).join("")}
         </ul>
+        ${verificationCommands.length > 0
+          ? `<p>Verification commands:</p>
+        <ul>
+          ${verificationCommands.map((command) => `<li><span class="value">${command}</span></li>`).join("")}
+        </ul>`
+          : ""}
         <div class="actions">
           <button type="button" id="preview-proposal">Preview Diff</button>
-          <button type="button" id="apply-proposal">Apply Change</button>
+          <button type="button" id="apply-proposal">Apply & Run Verification</button>
+          <button type="button" id="apply-without-verification">Apply Without Verification</button>
         </div>
       </section>`
         : ""}
@@ -228,6 +237,10 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
 
       document.getElementById("apply-proposal")?.addEventListener("click", () => {
         vscode.postMessage({ type: "applyProposal" });
+      });
+
+      document.getElementById("apply-without-verification")?.addEventListener("click", () => {
+        vscode.postMessage({ type: "applyWithoutVerification" });
       });
     </script>
   </body>

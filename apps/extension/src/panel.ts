@@ -22,7 +22,11 @@ interface ApplyProposalMessage {
   type: "applyProposal";
 }
 
-type PanelMessage = RunTaskMessage | PreviewProposalMessage | ApplyProposalMessage;
+interface ApplyWithoutVerificationMessage {
+  type: "applyWithoutVerification";
+}
+
+type PanelMessage = RunTaskMessage | PreviewProposalMessage | ApplyProposalMessage | ApplyWithoutVerificationMessage;
 
 function isRunTaskMessage(message: unknown): message is RunTaskMessage {
   return (
@@ -41,7 +45,9 @@ function isPanelMessage(message: unknown): message is PanelMessage {
     (typeof message === "object" &&
       message !== null &&
       "type" in message &&
-      (message.type === "previewProposal" || message.type === "applyProposal"))
+      (message.type === "previewProposal" ||
+        message.type === "applyProposal" ||
+        message.type === "applyWithoutVerification"))
   );
 }
 
@@ -83,8 +89,38 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       riskNote: pendingSourceChanges.length > 0 || pendingProposal
         ? `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
         : undefined,
+      verificationCommands: currentLifecycle?.taskSpec.verificationPlan.commands,
       verificationResults
     });
+  }
+
+  async function applyPendingChanges(): Promise<boolean> {
+    if (pendingSourceChanges.length === 0 && !pendingProposal) {
+      await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
+      return false;
+    }
+
+    if (pendingSourceChanges.length > 0) {
+      for (const sourceChange of pendingSourceChanges) {
+        const targetUri = sourceUri(vscodeApi, workspaceRootUri, sourceChange);
+        await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(sourceChange.proposedContent));
+      }
+      await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChanges.length} file(s).`);
+      return true;
+    }
+
+    const markdownProposal = pendingProposal;
+    if (!markdownProposal) {
+      await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
+      return false;
+    }
+
+    const targetUri = proposalUri(vscodeApi, workspaceRootUri, markdownProposal);
+    const targetDirectoryUri = vscodeApi.Uri.joinPath(workspaceRootUri, ".ai-ide-agent", "proposals");
+    await vscodeApi.workspace.fs.createDirectory(targetDirectoryUri);
+    await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(markdownProposal.content));
+    await vscodeApi.window.showInformationMessage(`smartIDE wrote ${markdownProposal.relativePath}`);
+    return true;
   }
 
   async function runVerificationPlan(): Promise<void> {
@@ -162,33 +198,31 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "applyProposal") {
-      if (pendingSourceChanges.length === 0 && !pendingProposal) {
-        await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
-        return;
-      }
-
-      if (pendingSourceChanges.length > 0) {
-        for (const sourceChange of pendingSourceChanges) {
-          const targetUri = sourceUri(vscodeApi, workspaceRootUri, sourceChange);
-          await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(sourceChange.proposedContent));
-        }
-        await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChanges.length} file(s).`);
+      if (await applyPendingChanges()) {
         await runVerificationPlan();
-        return;
       }
+      return;
+    }
 
-      const markdownProposal = pendingProposal;
-      if (!markdownProposal) {
-        await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
-        return;
+    if (message.type === "applyWithoutVerification") {
+      if (await applyPendingChanges()) {
+        verificationResults = [
+          {
+            kind: "manual",
+            label: "Verification skipped",
+            status: "skipped",
+            output: "User applied changes without running verification commands."
+          }
+        ];
+        if (currentLifecycle) {
+          currentLifecycle = {
+            ...currentLifecycle,
+            verification: verificationResults,
+            state: "Needs Review"
+          };
+        }
+        renderCurrentPanel();
       }
-
-      const targetUri = proposalUri(vscodeApi, workspaceRootUri, markdownProposal);
-      const targetDirectoryUri = vscodeApi.Uri.joinPath(workspaceRootUri, ".ai-ide-agent", "proposals");
-      await vscodeApi.workspace.fs.createDirectory(targetDirectoryUri);
-      await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(markdownProposal.content));
-      await vscodeApi.window.showInformationMessage(`smartIDE wrote ${markdownProposal.relativePath}`);
-      await runVerificationPlan();
       return;
     }
 

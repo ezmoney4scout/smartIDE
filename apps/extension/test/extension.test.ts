@@ -12,6 +12,7 @@ describe("extension panel HTML", () => {
       proposalPath: ".ai-ide-agent/proposals/task.md",
       proposalPaths: ["src/one.ts", "src/two.ts"],
       riskNote: "Review 2 files before applying.",
+      verificationCommands: ["npm test", "npm run typecheck"],
       verificationResults: [
         {
           kind: "test",
@@ -32,11 +33,14 @@ describe("extension panel HTML", () => {
     expect(html).toContain("npm test");
     expect(html).toContain("15 passed");
     expect(html).toContain("Preview Diff");
-    expect(html).toContain("Apply Change");
+    expect(html).toContain("Apply & Run Verification");
+    expect(html).toContain("Apply Without Verification");
+    expect(html).toContain("npm run typecheck");
     expect(html).toContain("Review 2 files before applying.");
     expect(html).toContain("src/one.ts");
     expect(html).toContain("src/two.ts");
     expect(html).toContain("previewProposal");
     expect(html).toContain("applyProposal");
+    expect(html).toContain("applyWithoutVerification");
   });
 });
