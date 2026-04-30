@@ -3,6 +3,7 @@ import { createProviderFromRuntimeConfig, ProviderRegistry } from "@ai-ide-agent
 import { LocalProjectStore } from "@ai-ide-agent/storage";
 import type * as vscode from "vscode";
 import { createFileProposal, type FileProposal } from "./fileProposal.js";
+import { mergeMemoryProposal } from "./memoryProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
 import { describeProviderConfiguration, resolveExtensionProviderRuntimeConfig } from "./settings.js";
 import { createSourceChangeProposal, type SourceChangeProposal } from "./sourceChangeProposal.js";
@@ -26,7 +27,16 @@ interface ApplyWithoutVerificationMessage {
   type: "applyWithoutVerification";
 }
 
-type PanelMessage = RunTaskMessage | PreviewProposalMessage | ApplyProposalMessage | ApplyWithoutVerificationMessage;
+interface AcceptMemoryUpdateMessage {
+  type: "acceptMemoryUpdate";
+}
+
+type PanelMessage =
+  | RunTaskMessage
+  | PreviewProposalMessage
+  | ApplyProposalMessage
+  | ApplyWithoutVerificationMessage
+  | AcceptMemoryUpdateMessage;
 
 function isRunTaskMessage(message: unknown): message is RunTaskMessage {
   return (
@@ -47,7 +57,8 @@ function isPanelMessage(message: unknown): message is PanelMessage {
       "type" in message &&
       (message.type === "previewProposal" ||
         message.type === "applyProposal" ||
-        message.type === "applyWithoutVerification"))
+        message.type === "applyWithoutVerification" ||
+        message.type === "acceptMemoryUpdate"))
   );
 }
 
@@ -67,10 +78,12 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   );
   const providerStatus = describeProviderConfiguration(providerConfig);
   const provider = createProviderFromRuntimeConfig(providerConfig);
+  const store = new LocalProjectStore(workspaceRoot);
   let pendingProposal: FileProposal | undefined;
   let pendingSourceChanges: SourceChangeProposal[] = [];
   let currentLifecycle: TaskLifecycle | undefined;
   let verificationResults: VerificationEvidence[] = [];
+  let memoryStatusMessage = "Review before writing to project memory.";
 
   function renderCurrentPanel(errorMessage?: string): void {
     panel.webview.html = renderPanelHtml({
@@ -95,7 +108,9 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         ? `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
         : undefined,
       verificationCommands: currentLifecycle?.taskSpec.verificationPlan.commands,
-      verificationResults
+      verificationResults,
+      memoryProposal: currentLifecycle?.memoryProposal,
+      memoryStatusMessage: currentLifecycle ? memoryStatusMessage : undefined
     });
   }
 
@@ -234,6 +249,20 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       return;
     }
 
+    if (message.type === "acceptMemoryUpdate") {
+      if (!currentLifecycle) {
+        await vscodeApi.window.showWarningMessage("No smartIDE memory proposal is ready to apply.");
+        return;
+      }
+
+      const currentMemory = await store.readMemory();
+      await store.writeMemory(mergeMemoryProposal(currentMemory, currentLifecycle.memoryProposal));
+      memoryStatusMessage = "Project memory updated.";
+      await vscodeApi.window.showInformationMessage("smartIDE updated project memory.");
+      renderCurrentPanel();
+      return;
+    }
+
     const goal = message.goal.trim();
     if (!goal) {
       panel.webview.html = renderPanelHtml({
@@ -281,10 +310,11 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         },
         providerId: provider.id,
         providers,
-        store: new LocalProjectStore(workspaceRoot)
+        store
       });
       currentLifecycle = lifecycle;
       verificationResults = [];
+      memoryStatusMessage = "Review before writing to project memory.";
       pendingProposal = createFileProposal({
         taskId: lifecycle.taskSpec.taskId,
         lifecycle

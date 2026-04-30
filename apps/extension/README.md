@@ -1,6 +1,6 @@
 # smartIDE
 
-smartIDE is a local-first AI IDE Agent for VS Code-compatible editors. It connects third-party LLM providers to a visible engineering workflow with Context Ledger entries, task specs, source change proposals, diff preview, and verification evidence.
+smartIDE is a local-first AI IDE Agent for VS Code-compatible editors. It connects third-party LLM providers to a visible engineering workflow with Context Ledger entries, task specs, source change proposals, diff preview, verification evidence, and user-approved Memory Update Proposals.
 
 ## Install From VSIX
 

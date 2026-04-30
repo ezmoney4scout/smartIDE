@@ -44,7 +44,14 @@ describe("extension panel HTML", () => {
           status: "passed",
           output: "15 passed"
         }
-      ]
+      ],
+      memoryProposal: {
+        facts: ["The project uses local-first storage."],
+        rules: ["Never write secrets into project memory."],
+        decisions: ["Use user-approved memory updates."],
+        pitfalls: ["Avoid storing transient task details."]
+      },
+      memoryStatusMessage: "Review before writing to project memory."
     });
 
     expect(html).toContain("AI IDE Agent");
@@ -75,5 +82,13 @@ describe("extension panel HTML", () => {
     expect(html).toContain("previewProposal");
     expect(html).toContain("applyProposal");
     expect(html).toContain("applyWithoutVerification");
+    expect(html).toContain("Memory Update Proposal");
+    expect(html).toContain("The project uses local-first storage.");
+    expect(html).toContain("Never write secrets into project memory.");
+    expect(html).toContain("Use user-approved memory updates.");
+    expect(html).toContain("Avoid storing transient task details.");
+    expect(html).toContain("Review before writing to project memory.");
+    expect(html).toContain("Accept Memory Update");
+    expect(html).toContain("acceptMemoryUpdate");
   });
 });

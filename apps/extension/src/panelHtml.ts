@@ -1,4 +1,4 @@
-import type { ContextLedgerEntry, VerificationEvidence } from "@ai-ide-agent/protocol";
+import type { ContextLedgerEntry, MemoryUpdateProposal, VerificationEvidence } from "@ai-ide-agent/protocol";
 
 export interface PanelViewModel {
   state: string;
@@ -17,6 +17,8 @@ export interface PanelViewModel {
   riskNote?: string;
   verificationCommands?: string[];
   verificationResults?: VerificationEvidence[];
+  memoryProposal?: MemoryUpdateProposal;
+  memoryStatusMessage?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -42,6 +44,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
   const verificationCommands = (viewModel.verificationCommands ?? []).map(escapeHtml);
   const verificationResults = viewModel.verificationResults ?? [];
+  const memoryProposal = viewModel.memoryProposal;
+  const memoryStatusMessage = viewModel.memoryStatusMessage ? escapeHtml(viewModel.memoryStatusMessage) : "";
+  const memoryProposalEntries = memoryProposal
+    ? [
+      ...memoryProposal.facts.map((value) => ({ label: "Fact", value })),
+      ...memoryProposal.rules.map((value) => ({ label: "Rule", value })),
+      ...memoryProposal.decisions.map((value) => ({ label: "Decision", value })),
+      ...memoryProposal.pitfalls.map((value) => ({ label: "Pitfall", value }))
+    ]
+    : [];
 
   return `<!doctype html>
 <html lang="en">
@@ -273,6 +285,23 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         </ul>`
           : ""}
       </section>
+
+      ${memoryProposalEntries.length > 0
+        ? `<section aria-labelledby="memory-proposal-title">
+        <h2 id="memory-proposal-title">Memory Update Proposal</h2>
+        ${memoryStatusMessage ? `<p class="meta">${memoryStatusMessage}</p>` : ""}
+        <ul>
+          ${memoryProposalEntries
+            .map((entry) => `<li>
+              <p><span class="value">${escapeHtml(entry.label)}</span>: ${escapeHtml(entry.value)}</p>
+            </li>`)
+            .join("")}
+        </ul>
+        <div class="actions">
+          <button type="button" id="accept-memory-update">Accept Memory Update</button>
+        </div>
+      </section>`
+        : ""}
     </main>
     <script>
       const vscode = acquireVsCodeApi();
@@ -294,6 +323,10 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
 
       document.getElementById("apply-without-verification")?.addEventListener("click", () => {
         vscode.postMessage({ type: "applyWithoutVerification" });
+      });
+
+      document.getElementById("accept-memory-update")?.addEventListener("click", () => {
+        vscode.postMessage({ type: "acceptMemoryUpdate" });
       });
     </script>
   </body>
