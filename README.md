@@ -79,7 +79,7 @@ Source code stays in the local workspace. API keys should be stored through edit
 
 ## Agent Task Flow
 
-The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares a Markdown change proposal under `.ai-ide-agent/proposals/`. Users can preview the proposal with VS Code's diff view before applying it. Applying writes only the generated proposal file in this first MVP, keeping source edits behind an explicit confirmation step.
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares a source-file change proposal for the first planned file. Users can preview the original file against the proposed content with VS Code's diff view before applying it. Applying writes the proposed content back to that workspace file, keeping source edits behind an explicit confirmation step.
 
 ## Open Source Status
 
@@ -102,7 +102,7 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 - Full Context Ledger UI
 - Provider settings UI
-- Source-file diff preview and Change Capsules
+- Structured LLM patch output for source-file diffs
 - Verification runners
 - Debug Hypothesis Mode
 - Memory Update Proposal UI

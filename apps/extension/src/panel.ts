@@ -5,6 +5,7 @@ import type * as vscode from "vscode";
 import { createFileProposal, type FileProposal } from "./fileProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
 import { resolveExtensionProviderRuntimeConfig } from "./settings.js";
+import { createSourceChangeProposal, type SourceChangeProposal } from "./sourceChangeProposal.js";
 
 interface RunTaskMessage {
   type: "runTask";
@@ -46,6 +47,10 @@ function proposalUri(vscodeApi: typeof vscode, workspaceRootUri: vscode.Uri, pro
   return vscodeApi.Uri.joinPath(workspaceRootUri, ...proposal.relativePath.split("/"));
 }
 
+function sourceUri(vscodeApi: typeof vscode, workspaceRootUri: vscode.Uri, proposal: SourceChangeProposal): vscode.Uri {
+  return vscodeApi.Uri.joinPath(workspaceRootUri, ...proposal.targetPath.split("/"));
+}
+
 export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   const workspaceRoot = vscodeApi.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
   const workspaceRootUri = vscodeApi.workspace.workspaceFolders?.[0]?.uri ?? vscodeApi.Uri.file(workspaceRoot);
@@ -54,6 +59,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   );
   const provider = createProviderFromRuntimeConfig(providerConfig);
   let pendingProposal: FileProposal | undefined;
+  let pendingSourceChange: SourceChangeProposal | undefined;
 
   const panel = vscodeApi.window.createWebviewPanel(
     "aiIdeAgent",
@@ -77,39 +83,63 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "previewProposal") {
-      if (!pendingProposal) {
+      if (!pendingSourceChange && !pendingProposal) {
         await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to preview.");
         return;
       }
 
-      const before = await vscodeApi.workspace.openTextDocument({
-        content: "",
-        language: "markdown"
-      });
+      if (pendingSourceChange) {
+        const targetUri = sourceUri(vscodeApi, workspaceRootUri, pendingSourceChange);
+        const after = await vscodeApi.workspace.openTextDocument({
+          content: pendingSourceChange.proposedContent
+        });
+        await vscodeApi.commands.executeCommand(
+          "vscode.diff",
+          targetUri,
+          after.uri,
+          `smartIDE Preview: ${pendingSourceChange.targetPath}`
+        );
+        return;
+      }
+
+      const before = await vscodeApi.workspace.openTextDocument({ content: "", language: "markdown" });
       const after = await vscodeApi.workspace.openTextDocument({
-        content: pendingProposal.content,
+        content: pendingProposal?.content ?? "",
         language: "markdown"
       });
       await vscodeApi.commands.executeCommand(
         "vscode.diff",
         before.uri,
         after.uri,
-        `smartIDE Preview: ${pendingProposal.relativePath}`
+        `smartIDE Preview: ${pendingProposal?.relativePath ?? "proposal"}`
       );
       return;
     }
 
     if (message.type === "applyProposal") {
-      if (!pendingProposal) {
+      if (!pendingSourceChange && !pendingProposal) {
         await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
         return;
       }
 
-      const targetUri = proposalUri(vscodeApi, workspaceRootUri, pendingProposal);
+      if (pendingSourceChange) {
+        const targetUri = sourceUri(vscodeApi, workspaceRootUri, pendingSourceChange);
+        await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(pendingSourceChange.proposedContent));
+        await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChange.targetPath}`);
+        return;
+      }
+
+      const markdownProposal = pendingProposal;
+      if (!markdownProposal) {
+        await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
+        return;
+      }
+
+      const targetUri = proposalUri(vscodeApi, workspaceRootUri, markdownProposal);
       const targetDirectoryUri = vscodeApi.Uri.joinPath(workspaceRootUri, ".ai-ide-agent", "proposals");
       await vscodeApi.workspace.fs.createDirectory(targetDirectoryUri);
-      await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(pendingProposal.content));
-      await vscodeApi.window.showInformationMessage(`smartIDE wrote ${pendingProposal.relativePath}`);
+      await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(markdownProposal.content));
+      await vscodeApi.window.showInformationMessage(`smartIDE wrote ${markdownProposal.relativePath}`);
       return;
     }
 
@@ -120,9 +150,9 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         taskGoal: "",
         contextCount: 0,
         changeCapsuleCount: 0,
-          verificationStatus: "skipped",
-          providerName: provider.displayName,
-          errorMessage: "Enter a task goal before running the agent."
+        verificationStatus: "skipped",
+        providerName: provider.displayName,
+        errorMessage: "Enter a task goal before running the agent."
       });
       return;
     }
@@ -141,12 +171,21 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         },
         providerId: provider.id,
         providers,
-          store: new LocalProjectStore(workspaceRoot)
+        store: new LocalProjectStore(workspaceRoot)
       });
       pendingProposal = createFileProposal({
         taskId: lifecycle.taskSpec.taskId,
         lifecycle
       });
+      const targetPath = lifecycle.taskSpec.plannedFiles[0];
+      if (targetPath) {
+        const targetUri = vscodeApi.Uri.joinPath(workspaceRootUri, ...targetPath.split("/"));
+        const originalContent = new TextDecoder().decode(await vscodeApi.workspace.fs.readFile(targetUri));
+        pendingSourceChange = createSourceChangeProposal({
+          originalContent,
+          lifecycle
+        });
+      }
 
       panel.webview.html = renderPanelHtml({
         state: lifecycle.state,
@@ -155,7 +194,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         changeCapsuleCount: lifecycle.changeCapsules.length,
         verificationStatus: lifecycle.verification[0]?.status ?? "skipped",
         providerName: provider.displayName,
-        proposalPath: pendingProposal.relativePath
+        proposalPath: pendingSourceChange?.targetPath ?? pendingProposal.relativePath
       });
     } catch (error) {
       panel.webview.html = renderPanelHtml({
