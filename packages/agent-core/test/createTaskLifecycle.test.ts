@@ -113,4 +113,47 @@ describe("createTaskLifecycle", () => {
     ]);
     expect(lifecycle.changeCapsules[0]?.intent).toBe("Update panel and tests");
   });
+
+  it("retrieves archived task context for related future tasks", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ai-ide-agent-core-"));
+    const registry = new ProviderRegistry();
+    registry.register(createMockProvider({ id: "mock", response: "Use adapter memory." }));
+    const store = new LocalProjectStore(tempDir);
+
+    await store.appendContextArchive({
+      taskId: "previous-provider-task",
+      goal: "Add provider adapters",
+      summary: "Provider code must stay behind adapter boundaries.",
+      paths: ["packages/providers/src/index.ts"],
+      facts: ["Provider adapters isolate model vendors."],
+      rules: ["Agent Core should not import vendor SDKs."],
+      decisions: ["Route model calls through ProviderRegistry."],
+      pitfalls: []
+    });
+
+    const lifecycle = await createTaskLifecycle({
+      request: {
+        id: "task-rag",
+        mode: "Edit",
+        goal: "Improve provider adapter routing",
+        workspaceRoot: tempDir,
+        risk: "low",
+        budget: { mode: "balanced" }
+      },
+      providerId: "mock",
+      providers: registry,
+      store
+    });
+
+    expect(lifecycle.contextLedger).toContainEqual(
+      expect.objectContaining({
+        path: "context-archive/previous-provider-task",
+        reason: "retrieved archived memory for this task",
+        source: "memory"
+      })
+    );
+
+    const archived = await store.searchContextArchive("adapter routing", 5);
+    expect(archived.map((entry) => entry.taskId)).toContain("task-rag");
+  });
 });

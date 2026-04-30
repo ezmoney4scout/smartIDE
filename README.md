@@ -28,6 +28,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Verification evidence model
 - Local project storage
 - Memory Update Proposal UI
+- Local Memory RAG archive
 - Budget and Limits Console
 - CLI demo
 - Interactive VS Code-compatible task panel
@@ -109,11 +110,11 @@ apps/extension
 
 ## Local-First Policy
 
-Source code stays in the local workspace. API keys should be stored through editor or OS secret storage. Long-term memory stores references, summaries, and provenance instead of copying source files by default.
+Source code stays in the local workspace. API keys should be stored through editor or OS secret storage. Long-term memory stores references, summaries, and provenance instead of copying source files by default. Task context is archived locally in `.ai-ide-agent/context-archive.jsonl` so future tasks can retrieve relevant project memory on demand.
 
 ## Agent Task Flow
 
-The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. It shows the Context Ledger entries used for the task, including path, source, reason, token estimate, and pinned/excluded flags. The Budget and Limits section shows the active budget mode, cost ceiling, token limits, and estimated task cost when available. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows the verification commands that may run. Users can choose **Apply & Run Verification** or **Apply Without Verification**. Verification output is shown in the panel and truncated before rendering to keep the UI responsive. The panel also shows Memory Update Proposals and only writes them into local project memory after user confirmation.
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. It retrieves related records from the local Memory RAG archive before planning, then shows those retrieved memories in the Context Ledger alongside path, source, reason, token estimate, and pinned/excluded flags. The Budget and Limits section shows the active budget mode, cost ceiling, token limits, and estimated task cost when available. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows the verification commands that may run. Users can choose **Apply & Run Verification** or **Apply Without Verification**. Verification output is shown in the panel and truncated before rendering to keep the UI responsive. The panel also shows Memory Update Proposals and only writes them into local project memory after user confirmation.
 
 Provider responses can drive real source edits by returning structured JSON:
 

@@ -34,9 +34,27 @@ Do not wrap the JSON in Markdown.`;
 export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Promise<TaskLifecycle> {
   const provider = input.providers.require(input.providerId);
   const memory = await input.store.readMemory();
+  const archivedContext = await input.store.searchContextArchive(input.request.goal, 3);
+  const archivedMemory = archivedContext
+    .map((record) => [
+      `Previous task: ${record.goal}`,
+      `Summary: ${record.summary}`,
+      record.facts.length > 0 ? `Facts: ${record.facts.join("; ")}` : "",
+      record.rules.length > 0 ? `Rules: ${record.rules.join("; ")}` : "",
+      record.decisions.length > 0 ? `Decisions: ${record.decisions.join("; ")}` : "",
+      record.pitfalls.length > 0 ? `Pitfalls: ${record.pitfalls.join("; ")}` : ""
+    ].filter(Boolean).join("\n"))
+    .join("\n\n");
   const providerResponse = await provider.complete({
     system: structuredPatchSystemPrompt,
-    messages: [{ role: "user", content: input.request.goal }],
+    messages: [
+      {
+        role: "user",
+        content: archivedMemory
+          ? `${input.request.goal}\n\nRelevant archived project memory:\n${archivedMemory}`
+          : input.request.goal
+      }
+    ],
     budget: input.request.budget
   });
   const structuredPatches = parseStructuredSourcePatches(providerResponse.content);
@@ -54,7 +72,14 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
       reason: "planned provider registry work",
       tokens: 0,
       pinned: true
-    })
+    }),
+    ...archivedContext.map((record) => createContextLedgerEntry({
+      path: `context-archive/${record.taskId}`,
+      source: "memory" as const,
+      reason: "retrieved archived memory for this task",
+      tokens: record.summary.length + record.facts.join(" ").length + record.rules.join(" ").length,
+      pinned: true
+    }))
   ];
 
   const taskSpec: TaskSpec = {
@@ -103,6 +128,16 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
     taskId: input.request.id,
     goal: input.request.goal,
     state: "Draft"
+  });
+  await input.store.appendContextArchive({
+    taskId: input.request.id,
+    goal: input.request.goal,
+    summary: changeCapsules[0]?.intent ?? input.request.goal,
+    paths: taskSpec.plannedFiles,
+    facts: memoryProposal.facts,
+    rules: memoryProposal.rules,
+    decisions: memoryProposal.decisions,
+    pitfalls: memoryProposal.pitfalls
   });
 
   return {
