@@ -12,6 +12,8 @@ describe("extension panel HTML", () => {
     });
 
     expect(html).toContain("AI IDE Agent");
+    expect(html).toContain("textarea");
+    expect(html).toContain("runTask");
     expect(html).toContain("Context Ledger");
     expect(html).toContain("Task Spec");
     expect(html).toContain("Change Capsules");

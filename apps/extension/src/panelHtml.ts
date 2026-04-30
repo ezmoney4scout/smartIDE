@@ -5,6 +5,7 @@ export interface PanelViewModel {
   changeCapsuleCount: number;
   verificationStatus: string;
   providerName?: string;
+  errorMessage?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -21,6 +22,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const taskGoal = escapeHtml(viewModel.taskGoal);
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
+  const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -77,12 +79,51 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         background: var(--vscode-editorWidget-background);
       }
 
+      form {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      textarea {
+        box-sizing: border-box;
+        min-height: 96px;
+        width: 100%;
+        resize: vertical;
+        border: 1px solid var(--vscode-input-border);
+        border-radius: 4px;
+        padding: 10px;
+        color: var(--vscode-input-foreground);
+        background: var(--vscode-input-background);
+        font: inherit;
+      }
+
+      button {
+        width: max-content;
+        border: 1px solid var(--vscode-button-border, transparent);
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: var(--vscode-button-foreground);
+        background: var(--vscode-button-background);
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: var(--vscode-button-hoverBackground);
+      }
+
       .meta {
         color: var(--vscode-descriptionForeground);
       }
 
       .value {
         font-weight: 650;
+      }
+
+      .error {
+        color: var(--vscode-errorForeground);
       }
     </style>
   </head>
@@ -94,9 +135,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <p class="meta">Provider: <span class="value">${providerName}</span></p>
       </header>
 
+      <form id="task-form">
+        <textarea id="task-goal" name="goal" aria-label="Task goal">${taskGoal}</textarea>
+        <button type="submit">Run Agent Task</button>
+      </form>
+
+      ${errorMessage ? `<p class="error">${errorMessage}</p>` : ""}
+
       <section aria-labelledby="task-spec-title">
         <h2 id="task-spec-title">Task Spec</h2>
-        <p>${taskGoal}</p>
+        <p>${taskGoal || "No task has run yet."}</p>
       </section>
 
       <section aria-labelledby="context-ledger-title">
@@ -114,6 +162,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <p>Current status: <span class="value">${verificationStatus}</span></p>
       </section>
     </main>
+    <script>
+      const vscode = acquireVsCodeApi();
+      const form = document.getElementById("task-form");
+      const goal = document.getElementById("task-goal");
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        vscode.postMessage({ type: "runTask", goal: goal.value });
+      });
+    </script>
   </body>
 </html>`;
 }

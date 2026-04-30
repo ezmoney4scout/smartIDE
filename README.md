@@ -1,5 +1,11 @@
 # smartIDE
 
+[![CI](https://github.com/ezmoney4scout/smartIDE/actions/workflows/ci.yml/badge.svg)](https://github.com/ezmoney4scout/smartIDE/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Node.js 22](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
+![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
+![VS Code Extension](https://img.shields.io/badge/VS%20Code-extension-007ACC?logo=visualstudiocode&logoColor=white)
+
 smartIDE is an open-source, local-first AI IDE agent based on VS Code extension architecture, designed for Vibe Coding workflows. It integrates multiple LLM choices, project context awareness, intelligent code search, AI-assisted editing, debugging support, and agent-style automation to help developers write and improve code more efficiently.
 
 Positioning: **From Prompt to Proof.**
