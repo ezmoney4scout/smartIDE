@@ -51,6 +51,33 @@ describe("source change proposal", () => {
     expect(proposal.proposedContent).toBe("new\n");
   });
 
+  it("can create a proposal for a selected target in a multi-file lifecycle", () => {
+    const proposal = createSourceChangeProposal({
+      targetPath: "src/two.ts",
+      originalContent: "old two\n",
+      lifecycle: {
+        taskSpec: {
+          goal: "Update two files",
+          plannedFiles: ["src/one.ts", "src/two.ts"]
+        },
+        changeCapsules: [
+          {
+            intent: "Update two files",
+            reason: JSON.stringify({
+              patches: [
+                { targetPath: "src/one.ts", proposedContent: "new one\n" },
+                { targetPath: "src/two.ts", proposedContent: "new two\n" }
+              ]
+            })
+          }
+        ]
+      } as TaskLifecycle
+    });
+
+    expect(proposal.targetPath).toBe("src/two.ts");
+    expect(proposal.proposedContent).toBe("new two\n");
+  });
+
   it("rejects unsafe target paths", () => {
     expect(() =>
       createSourceChangeProposal({

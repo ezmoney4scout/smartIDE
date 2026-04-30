@@ -76,4 +76,41 @@ describe("createTaskLifecycle", () => {
     expect(lifecycle.taskSpec.plannedFiles).toEqual(["apps/extension/src/panel.ts"]);
     expect(lifecycle.changeCapsules[0]?.intent).toBe("Update extension panel");
   });
+
+  it("uses multi-file structured patch output for planned files", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ai-ide-agent-core-"));
+    const registry = new ProviderRegistry();
+    registry.register(
+      createMockProvider({
+        id: "mock",
+        response: JSON.stringify({
+          summary: "Update panel and tests",
+          patches: [
+            { targetPath: "apps/extension/src/panel.ts", proposedContent: "panel\n" },
+            { targetPath: "apps/extension/test/extension.test.ts", proposedContent: "test\n" }
+          ]
+        })
+      })
+    );
+
+    const lifecycle = await createTaskLifecycle({
+      request: {
+        id: "task-multi-patch",
+        mode: "Edit",
+        goal: "Update panel and tests",
+        workspaceRoot: tempDir,
+        risk: "medium",
+        budget: { mode: "balanced" }
+      },
+      providerId: "mock",
+      providers: registry,
+      store: new LocalProjectStore(tempDir)
+    });
+
+    expect(lifecycle.taskSpec.plannedFiles).toEqual([
+      "apps/extension/src/panel.ts",
+      "apps/extension/test/extension.test.ts"
+    ]);
+    expect(lifecycle.changeCapsules[0]?.intent).toBe("Update panel and tests");
+  });
 });

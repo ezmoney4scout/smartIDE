@@ -59,7 +59,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   );
   const provider = createProviderFromRuntimeConfig(providerConfig);
   let pendingProposal: FileProposal | undefined;
-  let pendingSourceChange: SourceChangeProposal | undefined;
+  let pendingSourceChanges: SourceChangeProposal[] = [];
 
   const panel = vscodeApi.window.createWebviewPanel(
     "aiIdeAgent",
@@ -83,22 +83,24 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "previewProposal") {
-      if (!pendingSourceChange && !pendingProposal) {
+      if (pendingSourceChanges.length === 0 && !pendingProposal) {
         await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to preview.");
         return;
       }
 
-      if (pendingSourceChange) {
-        const targetUri = sourceUri(vscodeApi, workspaceRootUri, pendingSourceChange);
-        const after = await vscodeApi.workspace.openTextDocument({
-          content: pendingSourceChange.proposedContent
-        });
-        await vscodeApi.commands.executeCommand(
-          "vscode.diff",
-          targetUri,
-          after.uri,
-          `smartIDE Preview: ${pendingSourceChange.targetPath}`
-        );
+      if (pendingSourceChanges.length > 0) {
+        for (const sourceChange of pendingSourceChanges) {
+          const targetUri = sourceUri(vscodeApi, workspaceRootUri, sourceChange);
+          const after = await vscodeApi.workspace.openTextDocument({
+            content: sourceChange.proposedContent
+          });
+          await vscodeApi.commands.executeCommand(
+            "vscode.diff",
+            targetUri,
+            after.uri,
+            `smartIDE Preview: ${sourceChange.targetPath}`
+          );
+        }
         return;
       }
 
@@ -117,15 +119,17 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "applyProposal") {
-      if (!pendingSourceChange && !pendingProposal) {
+      if (pendingSourceChanges.length === 0 && !pendingProposal) {
         await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
         return;
       }
 
-      if (pendingSourceChange) {
-        const targetUri = sourceUri(vscodeApi, workspaceRootUri, pendingSourceChange);
-        await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(pendingSourceChange.proposedContent));
-        await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChange.targetPath}`);
+      if (pendingSourceChanges.length > 0) {
+        for (const sourceChange of pendingSourceChanges) {
+          const targetUri = sourceUri(vscodeApi, workspaceRootUri, sourceChange);
+          await vscodeApi.workspace.fs.writeFile(targetUri, new TextEncoder().encode(sourceChange.proposedContent));
+        }
+        await vscodeApi.window.showInformationMessage(`smartIDE updated ${pendingSourceChanges.length} file(s).`);
         return;
       }
 
@@ -177,14 +181,15 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         taskId: lifecycle.taskSpec.taskId,
         lifecycle
       });
-      const targetPath = lifecycle.taskSpec.plannedFiles[0];
-      if (targetPath) {
+      pendingSourceChanges = [];
+      for (const targetPath of lifecycle.taskSpec.plannedFiles) {
         const targetUri = vscodeApi.Uri.joinPath(workspaceRootUri, ...targetPath.split("/"));
         const originalContent = new TextDecoder().decode(await vscodeApi.workspace.fs.readFile(targetUri));
-        pendingSourceChange = createSourceChangeProposal({
+        pendingSourceChanges.push(createSourceChangeProposal({
+          targetPath,
           originalContent,
           lifecycle
-        });
+        }));
       }
 
       panel.webview.html = renderPanelHtml({
@@ -194,7 +199,11 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         changeCapsuleCount: lifecycle.changeCapsules.length,
         verificationStatus: lifecycle.verification[0]?.status ?? "skipped",
         providerName: provider.displayName,
-        proposalPath: pendingSourceChange?.targetPath ?? pendingProposal.relativePath
+        proposalPath: pendingSourceChanges[0]?.targetPath ?? pendingProposal.relativePath,
+        proposalPaths: pendingSourceChanges.length > 0
+          ? pendingSourceChanges.map((sourceChange) => sourceChange.targetPath)
+          : [pendingProposal.relativePath],
+        riskNote: `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
       });
     } catch (error) {
       panel.webview.html = renderPanelHtml({

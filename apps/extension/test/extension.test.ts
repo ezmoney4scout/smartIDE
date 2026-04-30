@@ -9,7 +9,9 @@ describe("extension panel HTML", () => {
       contextCount: 2,
       changeCapsuleCount: 1,
       verificationStatus: "skipped",
-      proposalPath: ".ai-ide-agent/proposals/task.md"
+      proposalPath: ".ai-ide-agent/proposals/task.md",
+      proposalPaths: ["src/one.ts", "src/two.ts"],
+      riskNote: "Review 2 files before applying."
     });
 
     expect(html).toContain("AI IDE Agent");
@@ -21,6 +23,9 @@ describe("extension panel HTML", () => {
     expect(html).toContain("Verification Gate");
     expect(html).toContain("Preview Diff");
     expect(html).toContain("Apply Change");
+    expect(html).toContain("Review 2 files before applying.");
+    expect(html).toContain("src/one.ts");
+    expect(html).toContain("src/two.ts");
     expect(html).toContain("previewProposal");
     expect(html).toContain("applyProposal");
   });

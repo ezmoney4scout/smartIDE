@@ -1,6 +1,6 @@
 import {
   createContextLedgerEntry,
-  parseStructuredSourcePatch,
+  parseStructuredSourcePatches,
   type ChangeCapsule,
   type TaskLifecycle,
   type TaskRequest,
@@ -20,9 +20,14 @@ export interface CreateTaskLifecycleInput {
 const structuredPatchSystemPrompt = `You are smartIDE's source patch planner.
 Return only JSON with this shape:
 {
-  "targetPath": "relative/path/inside/workspace",
-  "proposedContent": "complete replacement file content",
-  "summary": "short change summary"
+  "summary": "short task summary",
+  "patches": [
+    {
+      "targetPath": "relative/path/inside/workspace",
+      "proposedContent": "complete replacement file content",
+      "summary": "optional per-file summary"
+    }
+  ]
 }
 Do not wrap the JSON in Markdown.`;
 
@@ -34,7 +39,7 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
     messages: [{ role: "user", content: input.request.goal }],
     budget: input.request.budget
   });
-  const structuredPatch = parseStructuredSourcePatch(providerResponse.content);
+  const structuredPatches = parseStructuredSourcePatches(providerResponse.content);
 
   const contextLedger = [
     createContextLedgerEntry({
@@ -56,8 +61,8 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
     taskId: input.request.id,
     goal: input.request.goal,
     mode: input.request.mode,
-    plannedFiles: structuredPatch
-      ? [structuredPatch.targetPath]
+    plannedFiles: structuredPatches.length > 0
+      ? structuredPatches.map((patch) => patch.targetPath)
       : ["packages/providers/src/index.ts", "packages/providers/src/mockProvider.ts"],
     risk: input.request.risk,
     verificationPlan: {
@@ -70,7 +75,7 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
   const changeCapsules: ChangeCapsule[] = [
     {
       id: "capsule-provider-abstraction",
-      intent: structuredPatch?.summary ?? "Establish provider abstraction",
+      intent: structuredPatches[0]?.summary ?? "Establish provider abstraction",
       reason: providerResponse.content,
       files: taskSpec.plannedFiles,
       risk: input.request.risk,

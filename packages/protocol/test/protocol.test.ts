@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TaskRequest, TaskState } from "../src/index.js";
-import { createContextLedgerEntry, parseStructuredSourcePatch } from "../src/index.js";
+import { createContextLedgerEntry, parseStructuredSourcePatch, parseStructuredSourcePatches } from "../src/index.js";
 
 describe("protocol contracts", () => {
   it("creates a readable context ledger entry", () => {
@@ -48,5 +48,31 @@ describe("protocol contracts", () => {
       summary: "Update example"
     });
     expect(parseStructuredSourcePatch("not json")).toBeUndefined();
+  });
+
+  it("normalizes single and multi-file structured source patch output", () => {
+    expect(
+      parseStructuredSourcePatches(
+        JSON.stringify({
+          targetPath: "src/one.ts",
+          proposedContent: "one\n"
+        })
+      )
+    ).toEqual([{ targetPath: "src/one.ts", proposedContent: "one\n" }]);
+
+    expect(
+      parseStructuredSourcePatches(
+        JSON.stringify({
+          summary: "Update two files",
+          patches: [
+            { targetPath: "src/one.ts", proposedContent: "one\n" },
+            { targetPath: "src/two.ts", proposedContent: "two\n", summary: "Second file" }
+          ]
+        })
+      )
+    ).toEqual([
+      { targetPath: "src/one.ts", proposedContent: "one\n", summary: "Update two files" },
+      { targetPath: "src/two.ts", proposedContent: "two\n", summary: "Second file" }
+    ]);
   });
 });

@@ -85,13 +85,18 @@ Provider responses can drive real source edits by returning structured JSON:
 
 ```json
 {
-  "targetPath": "relative/path/inside/workspace",
-  "proposedContent": "complete replacement file content",
-  "summary": "short change summary"
+  "summary": "short task summary",
+  "patches": [
+    {
+      "targetPath": "relative/path/inside/workspace",
+      "proposedContent": "complete replacement file content",
+      "summary": "optional per-file summary"
+    }
+  ]
 }
 ```
 
-If the response is not valid structured patch JSON, smartIDE falls back to a safe local proposal note so the user still gets a reviewable diff instead of an untrusted write.
+The older single-file `{ "targetPath", "proposedContent", "summary" }` shape is still supported. If the response is not valid structured patch JSON, smartIDE falls back to a safe local proposal note so the user still gets a reviewable diff instead of an untrusted write.
 
 ## Open Source Status
 
@@ -114,7 +119,6 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 - Full Context Ledger UI
 - Provider settings UI
-- Multi-file structured patch output
 - Verification runners
 - Debug Hypothesis Mode
 - Memory Update Proposal UI

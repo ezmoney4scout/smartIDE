@@ -7,6 +7,8 @@ export interface PanelViewModel {
   providerName?: string;
   errorMessage?: string;
   proposalPath?: string;
+  proposalPaths?: string[];
+  riskNote?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -24,7 +26,9 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
-  const proposalPath = viewModel.proposalPath ? escapeHtml(viewModel.proposalPath) : "";
+  const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
+    .map(escapeHtml);
+  const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -151,10 +155,14 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
 
       ${errorMessage ? `<p class="error">${errorMessage}</p>` : ""}
 
-      ${proposalPath
+      ${proposalPaths.length > 0
         ? `<section aria-labelledby="proposal-title">
         <h2 id="proposal-title">File Proposal</h2>
-        <p>Target file: <span class="value">${proposalPath}</span></p>
+        ${riskNote ? `<p class="meta">${riskNote}</p>` : ""}
+        <p>Target files:</p>
+        <ul>
+          ${proposalPaths.map((path) => `<li><span class="value">${path}</span></li>`).join("")}
+        </ul>
         <div class="actions">
           <button type="button" id="preview-proposal">Preview Diff</button>
           <button type="button" id="apply-proposal">Apply Change</button>

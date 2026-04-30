@@ -1,4 +1,4 @@
-import { parseStructuredSourcePatch, type TaskLifecycle } from "@ai-ide-agent/protocol";
+import { parseStructuredSourcePatches, type TaskLifecycle } from "@ai-ide-agent/protocol";
 
 export interface SourceChangeProposal {
   targetPath: string;
@@ -7,6 +7,7 @@ export interface SourceChangeProposal {
 }
 
 export interface CreateSourceChangeProposalInput {
+  targetPath?: string;
   originalContent: string;
   lifecycle: TaskLifecycle;
 }
@@ -42,11 +43,11 @@ function commentBlockForPath(targetPath: string, content: string): string {
 }
 
 export function createSourceChangeProposal(input: CreateSourceChangeProposalInput): SourceChangeProposal {
-  const targetPath = input.lifecycle.taskSpec.plannedFiles[0] ?? "";
+  const targetPath = input.targetPath ?? input.lifecycle.taskSpec.plannedFiles[0] ?? "";
   assertSafeTargetPath(targetPath);
 
   const structuredPatch = input.lifecycle.changeCapsules
-    .map((capsule) => parseStructuredSourcePatch(capsule.reason))
+    .flatMap((capsule) => parseStructuredSourcePatches(capsule.reason))
     .find((patch) => patch?.targetPath === targetPath);
   if (structuredPatch) {
     return {

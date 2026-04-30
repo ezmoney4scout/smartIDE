@@ -137,6 +137,11 @@ export interface StructuredSourcePatch {
   summary?: string;
 }
 
+export interface StructuredSourcePatchSet {
+  summary?: string;
+  patches: StructuredSourcePatch[];
+}
+
 function isStructuredSourcePatch(value: unknown): value is StructuredSourcePatch {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -157,6 +162,39 @@ export function parseStructuredSourcePatch(content: string): StructuredSourcePat
   } catch {
     return undefined;
   }
+}
+
+function isStructuredSourcePatchSet(value: unknown): value is StructuredSourcePatchSet {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    Array.isArray(candidate.patches) &&
+    candidate.patches.every(isStructuredSourcePatch) &&
+    (candidate.summary === undefined || typeof candidate.summary === "string")
+  );
+}
+
+export function parseStructuredSourcePatches(content: string): StructuredSourcePatch[] {
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    if (isStructuredSourcePatch(parsed)) {
+      return [parsed];
+    }
+
+    if (isStructuredSourcePatchSet(parsed)) {
+      return parsed.patches.map((patch) => ({
+        ...patch,
+        summary: patch.summary ?? parsed.summary
+      }));
+    }
+  } catch {
+    return [];
+  }
+
+  return [];
 }
 
 export interface ChatResponseChunk {
