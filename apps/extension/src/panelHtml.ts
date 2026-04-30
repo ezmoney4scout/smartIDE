@@ -1,4 +1,4 @@
-import type { ContextLedgerEntry, MemoryUpdateProposal, VerificationEvidence } from "@ai-ide-agent/protocol";
+import type { BudgetHint, ContextLedgerEntry, MemoryUpdateProposal, VerificationEvidence } from "@ai-ide-agent/protocol";
 
 export interface PanelViewModel {
   state: string;
@@ -6,6 +6,8 @@ export interface PanelViewModel {
   contextCount: number;
   changeCapsuleCount: number;
   verificationStatus: string;
+  budget?: BudgetHint;
+  estimatedCostUsd?: number;
   contextLedger?: ContextLedgerEntry[];
   providerName?: string;
   modelName?: string;
@@ -30,12 +32,21 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function formatUsd(value: number): string {
+  return `$${value.toFixed(2)}`;
+}
+
+function formatTokenLimit(value: number | undefined, label: string): string {
+  return value === undefined ? `No ${label} limit` : `${value.toLocaleString("en-US")} ${label} tokens`;
+}
+
 export function renderPanelHtml(viewModel: PanelViewModel): string {
   const state = escapeHtml(viewModel.state);
   const taskGoal = escapeHtml(viewModel.taskGoal);
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
   const modelName = escapeHtml(viewModel.modelName ?? "mock-model");
+  const budget = viewModel.budget;
   const providerStatusMessage = viewModel.providerStatusMessage ? escapeHtml(viewModel.providerStatusMessage) : "";
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
@@ -244,6 +255,19 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <h2 id="task-spec-title">Task Spec</h2>
         <p>${taskGoal || "No task has run yet."}</p>
       </section>
+
+      ${budget
+        ? `<section aria-labelledby="budget-title">
+        <h2 id="budget-title">Budget and Limits</h2>
+        <div class="badges">
+          <span class="badge">${escapeHtml(budget.mode)}</span>
+          <span class="badge">${budget.maxUsd === undefined ? "No cost limit" : formatUsd(budget.maxUsd)}</span>
+          <span class="badge">${escapeHtml(formatTokenLimit(budget.maxInputTokens, "input"))}</span>
+          <span class="badge">${escapeHtml(formatTokenLimit(budget.maxOutputTokens, "output"))}</span>
+          <span class="badge">Estimated: ${viewModel.estimatedCostUsd === undefined ? "pending" : formatUsd(viewModel.estimatedCostUsd)}</span>
+        </div>
+      </section>`
+        : ""}
 
       <section aria-labelledby="context-ledger-title">
         <h2 id="context-ledger-title">Context Ledger</h2>

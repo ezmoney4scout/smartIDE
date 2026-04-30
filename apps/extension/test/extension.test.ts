@@ -9,6 +9,13 @@ describe("extension panel HTML", () => {
       contextCount: 2,
       changeCapsuleCount: 1,
       verificationStatus: "skipped",
+      budget: {
+        mode: "strict",
+        maxUsd: 0.25,
+        maxInputTokens: 2000,
+        maxOutputTokens: 800
+      },
+      estimatedCostUsd: 0.02,
       providerName: "Kimi",
       modelName: "kimi-k2.5",
       providerStatusMessage: "Kimi requires an API key.",
@@ -68,6 +75,12 @@ describe("extension panel HTML", () => {
     expect(html).toContain("pinned");
     expect(html).toContain("excluded");
     expect(html).toContain("Task Spec");
+    expect(html).toContain("Budget and Limits");
+    expect(html).toContain("strict");
+    expect(html).toContain("$0.25");
+    expect(html).toContain("2,000 input tokens");
+    expect(html).toContain("800 output tokens");
+    expect(html).toContain("$0.02");
     expect(html).toContain("Change Capsules");
     expect(html).toContain("Verification Gate");
     expect(html).toContain("npm test");
