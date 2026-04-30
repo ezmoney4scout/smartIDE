@@ -1,6 +1,6 @@
-# AI IDE Agent
+# smartIDE
 
-AI IDE Agent is an open-source, local-first IDE agent platform for bringing third-party LLMs into a trustworthy software engineering workflow.
+smartIDE is an open-source, local-first AI IDE agent based on VS Code extension architecture, designed for Vibe Coding workflows. It integrates multiple LLM choices, project context awareness, intelligent code search, AI-assisted editing, debugging support, and agent-style automation to help developers write and improve code more efficiently.
 
 Positioning: **From Prompt to Proof.**
 
