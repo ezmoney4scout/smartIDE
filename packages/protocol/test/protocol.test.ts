@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TaskRequest, TaskState } from "../src/index.js";
-import { createContextLedgerEntry } from "../src/index.js";
+import { createContextLedgerEntry, parseStructuredSourcePatch } from "../src/index.js";
 
 describe("protocol contracts", () => {
   it("creates a readable context ledger entry", () => {
@@ -31,5 +31,22 @@ describe("protocol contracts", () => {
 
     expect(task.mode).toBe("Edit");
     expect(state).toBe("Draft");
+  });
+
+  it("parses structured source patch output", () => {
+    const patch = parseStructuredSourcePatch(
+      JSON.stringify({
+        targetPath: "src/example.ts",
+        proposedContent: "export const ok = true;\n",
+        summary: "Update example"
+      })
+    );
+
+    expect(patch).toEqual({
+      targetPath: "src/example.ts",
+      proposedContent: "export const ok = true;\n",
+      summary: "Update example"
+    });
+    expect(parseStructuredSourcePatch("not json")).toBeUndefined();
   });
 });

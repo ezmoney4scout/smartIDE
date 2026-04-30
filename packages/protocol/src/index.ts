@@ -131,6 +131,34 @@ export interface ChatResponse {
   usage?: TokenUsage;
 }
 
+export interface StructuredSourcePatch {
+  targetPath: string;
+  proposedContent: string;
+  summary?: string;
+}
+
+function isStructuredSourcePatch(value: unknown): value is StructuredSourcePatch {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.targetPath === "string" &&
+    typeof candidate.proposedContent === "string" &&
+    (candidate.summary === undefined || typeof candidate.summary === "string")
+  );
+}
+
+export function parseStructuredSourcePatch(content: string): StructuredSourcePatch | undefined {
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    return isStructuredSourcePatch(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface ChatResponseChunk {
   contentDelta: string;
   done: boolean;

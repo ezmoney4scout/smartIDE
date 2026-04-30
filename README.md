@@ -81,6 +81,18 @@ Source code stays in the local workspace. API keys should be stored through edit
 
 The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares a source-file change proposal for the first planned file. Users can preview the original file against the proposed content with VS Code's diff view before applying it. Applying writes the proposed content back to that workspace file, keeping source edits behind an explicit confirmation step.
 
+Provider responses can drive real source edits by returning structured JSON:
+
+```json
+{
+  "targetPath": "relative/path/inside/workspace",
+  "proposedContent": "complete replacement file content",
+  "summary": "short change summary"
+}
+```
+
+If the response is not valid structured patch JSON, smartIDE falls back to a safe local proposal note so the user still gets a reviewable diff instead of an untrusted write.
+
 ## Open Source Status
 
 This repository is ready for an initial public GitHub release:
@@ -102,7 +114,7 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 - Full Context Ledger UI
 - Provider settings UI
-- Structured LLM patch output for source-file diffs
+- Multi-file structured patch output
 - Verification runners
 - Debug Hypothesis Mode
 - Memory Update Proposal UI

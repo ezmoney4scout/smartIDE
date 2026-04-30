@@ -1,5 +1,6 @@
 import {
   createContextLedgerEntry,
+  parseStructuredSourcePatch,
   type ChangeCapsule,
   type TaskLifecycle,
   type TaskRequest,
@@ -16,13 +17,24 @@ export interface CreateTaskLifecycleInput {
   store: LocalProjectStore;
 }
 
+const structuredPatchSystemPrompt = `You are smartIDE's source patch planner.
+Return only JSON with this shape:
+{
+  "targetPath": "relative/path/inside/workspace",
+  "proposedContent": "complete replacement file content",
+  "summary": "short change summary"
+}
+Do not wrap the JSON in Markdown.`;
+
 export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Promise<TaskLifecycle> {
   const provider = input.providers.require(input.providerId);
   const memory = await input.store.readMemory();
   const providerResponse = await provider.complete({
+    system: structuredPatchSystemPrompt,
     messages: [{ role: "user", content: input.request.goal }],
     budget: input.request.budget
   });
+  const structuredPatch = parseStructuredSourcePatch(providerResponse.content);
 
   const contextLedger = [
     createContextLedgerEntry({
@@ -44,7 +56,9 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
     taskId: input.request.id,
     goal: input.request.goal,
     mode: input.request.mode,
-    plannedFiles: ["packages/providers/src/index.ts", "packages/providers/src/mockProvider.ts"],
+    plannedFiles: structuredPatch
+      ? [structuredPatch.targetPath]
+      : ["packages/providers/src/index.ts", "packages/providers/src/mockProvider.ts"],
     risk: input.request.risk,
     verificationPlan: {
       commands: ["npm test", "npm run typecheck"],
@@ -56,7 +70,7 @@ export async function createTaskLifecycle(input: CreateTaskLifecycleInput): Prom
   const changeCapsules: ChangeCapsule[] = [
     {
       id: "capsule-provider-abstraction",
-      intent: "Establish provider abstraction",
+      intent: structuredPatch?.summary ?? "Establish provider abstraction",
       reason: providerResponse.content,
       files: taskSpec.plannedFiles,
       risk: input.request.risk,

@@ -26,6 +26,31 @@ describe("source change proposal", () => {
     expect(proposal.proposedContent).toContain("Add provider picker");
   });
 
+  it("uses structured patch content when the lifecycle contains one", () => {
+    const proposal = createSourceChangeProposal({
+      originalContent: "old\n",
+      lifecycle: {
+        taskSpec: {
+          goal: "Replace file",
+          plannedFiles: ["src/example.ts"]
+        },
+        changeCapsules: [
+          {
+            intent: "Replace file",
+            reason: JSON.stringify({
+              targetPath: "src/example.ts",
+              proposedContent: "new\n"
+            })
+          }
+        ]
+      } as TaskLifecycle
+    });
+
+    expect(proposal.targetPath).toBe("src/example.ts");
+    expect(proposal.originalContent).toBe("old\n");
+    expect(proposal.proposedContent).toBe("new\n");
+  });
+
   it("rejects unsafe target paths", () => {
     expect(() =>
       createSourceChangeProposal({

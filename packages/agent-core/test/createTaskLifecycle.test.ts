@@ -44,4 +44,36 @@ describe("createTaskLifecycle", () => {
       "Use provider adapters instead of binding Agent Core to vendor SDKs."
     );
   });
+
+  it("uses structured patch output for planned files and change capsule intent", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ai-ide-agent-core-"));
+    const registry = new ProviderRegistry();
+    registry.register(
+      createMockProvider({
+        id: "mock",
+        response: JSON.stringify({
+          targetPath: "apps/extension/src/panel.ts",
+          proposedContent: "export const changed = true;\n",
+          summary: "Update extension panel"
+        })
+      })
+    );
+
+    const lifecycle = await createTaskLifecycle({
+      request: {
+        id: "task-structured-patch",
+        mode: "Edit",
+        goal: "Update panel",
+        workspaceRoot: tempDir,
+        risk: "low",
+        budget: { mode: "balanced" }
+      },
+      providerId: "mock",
+      providers: registry,
+      store: new LocalProjectStore(tempDir)
+    });
+
+    expect(lifecycle.taskSpec.plannedFiles).toEqual(["apps/extension/src/panel.ts"]);
+    expect(lifecycle.changeCapsules[0]?.intent).toBe("Update extension panel");
+  });
 });
