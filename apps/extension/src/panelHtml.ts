@@ -6,6 +6,7 @@ export interface PanelViewModel {
   verificationStatus: string;
   providerName?: string;
   errorMessage?: string;
+  proposalPath?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -23,6 +24,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
+  const proposalPath = viewModel.proposalPath ? escapeHtml(viewModel.proposalPath) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -114,6 +116,13 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         background: var(--vscode-button-hoverBackground);
       }
 
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
       .meta {
         color: var(--vscode-descriptionForeground);
       }
@@ -141,6 +150,17 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       </form>
 
       ${errorMessage ? `<p class="error">${errorMessage}</p>` : ""}
+
+      ${proposalPath
+        ? `<section aria-labelledby="proposal-title">
+        <h2 id="proposal-title">File Proposal</h2>
+        <p>Target file: <span class="value">${proposalPath}</span></p>
+        <div class="actions">
+          <button type="button" id="preview-proposal">Preview Diff</button>
+          <button type="button" id="apply-proposal">Apply Change</button>
+        </div>
+      </section>`
+        : ""}
 
       <section aria-labelledby="task-spec-title">
         <h2 id="task-spec-title">Task Spec</h2>
@@ -170,6 +190,14 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         vscode.postMessage({ type: "runTask", goal: goal.value });
+      });
+
+      document.getElementById("preview-proposal")?.addEventListener("click", () => {
+        vscode.postMessage({ type: "previewProposal" });
+      });
+
+      document.getElementById("apply-proposal")?.addEventListener("click", () => {
+        vscode.postMessage({ type: "applyProposal" });
       });
     </script>
   </body>

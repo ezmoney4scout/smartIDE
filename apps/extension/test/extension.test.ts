@@ -8,7 +8,8 @@ describe("extension panel HTML", () => {
       taskGoal: "Demonstrate lifecycle",
       contextCount: 2,
       changeCapsuleCount: 1,
-      verificationStatus: "skipped"
+      verificationStatus: "skipped",
+      proposalPath: ".ai-ide-agent/proposals/task.md"
     });
 
     expect(html).toContain("AI IDE Agent");
@@ -18,5 +19,9 @@ describe("extension panel HTML", () => {
     expect(html).toContain("Task Spec");
     expect(html).toContain("Change Capsules");
     expect(html).toContain("Verification Gate");
+    expect(html).toContain("Preview Diff");
+    expect(html).toContain("Apply Change");
+    expect(html).toContain("previewProposal");
+    expect(html).toContain("applyProposal");
   });
 });

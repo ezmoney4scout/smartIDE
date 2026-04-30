@@ -27,6 +27,8 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Verification evidence model
 - Local project storage
 - CLI demo
+- Interactive VS Code-compatible task panel
+- Diff preview and confirmed proposal write flow
 
 ## Quick Start
 
@@ -75,6 +77,10 @@ apps/extension
 
 Source code stays in the local workspace. API keys should be stored through editor or OS secret storage. Long-term memory stores references, summaries, and provenance instead of copying source files by default.
 
+## Agent Task Flow
+
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares a Markdown change proposal under `.ai-ide-agent/proposals/`. Users can preview the proposal with VS Code's diff view before applying it. Applying writes only the generated proposal file in this first MVP, keeping source edits behind an explicit confirmation step.
+
 ## Open Source Status
 
 This repository is ready for an initial public GitHub release:
@@ -96,7 +102,7 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 - Full Context Ledger UI
 - Provider settings UI
-- Real diff preview and Change Capsules
+- Source-file diff preview and Change Capsules
 - Verification runners
 - Debug Hypothesis Mode
 - Memory Update Proposal UI
