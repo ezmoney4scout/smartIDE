@@ -9,6 +9,10 @@ describe("extension panel HTML", () => {
       contextCount: 2,
       changeCapsuleCount: 1,
       verificationStatus: "skipped",
+      providerName: "Kimi",
+      modelName: "kimi-k2.5",
+      providerStatusMessage: "Kimi requires an API key.",
+      providerReady: false,
       proposalPath: ".ai-ide-agent/proposals/task.md",
       proposalPaths: ["src/one.ts", "src/two.ts"],
       riskNote: "Review 2 files before applying.",
@@ -24,6 +28,9 @@ describe("extension panel HTML", () => {
     });
 
     expect(html).toContain("AI IDE Agent");
+    expect(html).toContain("Kimi");
+    expect(html).toContain("kimi-k2.5");
+    expect(html).toContain("Kimi requires an API key.");
     expect(html).toContain("textarea");
     expect(html).toContain("runTask");
     expect(html).toContain("Context Ledger");

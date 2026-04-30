@@ -63,6 +63,29 @@ Supported provider values:
 
 The VS Code-compatible extension also exposes `aiIdeAgent.provider`, `aiIdeAgent.apiKey`, `aiIdeAgent.baseUrl`, and `aiIdeAgent.defaultModel` settings. Environment variables are safer for shared workspaces because they reduce the chance of committing secrets.
 
+The extension panel shows the active provider, model, and configuration status before a task runs. Hosted providers are blocked with a clear message when their API key is missing; the `mock` provider remains zero-config for local demos and CI.
+
+Example extension settings:
+
+```json
+{
+  "aiIdeAgent.provider": "glm",
+  "aiIdeAgent.apiKey": "your-api-key",
+  "aiIdeAgent.defaultModel": "glm-4.6"
+}
+```
+
+For other OpenAI-compatible LLM services, use `openai-compatible` with a custom base URL:
+
+```json
+{
+  "aiIdeAgent.provider": "openai-compatible",
+  "aiIdeAgent.apiKey": "your-api-key",
+  "aiIdeAgent.baseUrl": "https://api.example.com/v1",
+  "aiIdeAgent.defaultModel": "provider-model-name"
+}
+```
+
 ## Architecture
 
 ```text

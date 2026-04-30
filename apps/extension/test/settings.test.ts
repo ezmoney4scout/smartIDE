@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveExtensionProviderRuntimeConfig } from "../src/settings.js";
+import { describeProviderConfiguration, resolveExtensionProviderRuntimeConfig } from "../src/settings.js";
 
 describe("extension settings", () => {
   it("uses env config when editor settings are empty", () => {
@@ -38,6 +38,36 @@ describe("extension settings", () => {
       provider: "glm",
       apiKey: "settings-key",
       defaultModel: "glm-custom"
+    });
+  });
+
+  it("marks mock provider as ready without an API key", () => {
+    expect(describeProviderConfiguration({ provider: "mock" })).toMatchObject({
+      ok: true,
+      providerLabel: "Mock Provider",
+      modelLabel: "mock-model"
+    });
+  });
+
+  it("reports missing API keys for hosted providers", () => {
+    expect(describeProviderConfiguration({ provider: "kimi" })).toMatchObject({
+      ok: false,
+      providerLabel: "Kimi",
+      message: "Kimi requires an API key."
+    });
+  });
+
+  it("reports configured hosted provider model information", () => {
+    expect(
+      describeProviderConfiguration({
+        provider: "glm",
+        apiKey: "glm-key",
+        defaultModel: "glm-custom"
+      })
+    ).toMatchObject({
+      ok: true,
+      providerLabel: "GLM",
+      modelLabel: "glm-custom"
     });
   });
 });

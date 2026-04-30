@@ -4,7 +4,7 @@ import { LocalProjectStore } from "@ai-ide-agent/storage";
 import type * as vscode from "vscode";
 import { createFileProposal, type FileProposal } from "./fileProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
-import { resolveExtensionProviderRuntimeConfig } from "./settings.js";
+import { describeProviderConfiguration, resolveExtensionProviderRuntimeConfig } from "./settings.js";
 import { createSourceChangeProposal, type SourceChangeProposal } from "./sourceChangeProposal.js";
 import { runVerificationCommands } from "./verificationRunner.js";
 import type { TaskLifecycle, VerificationEvidence } from "@ai-ide-agent/protocol";
@@ -65,6 +65,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   const providerConfig = resolveExtensionProviderRuntimeConfig(
     vscodeApi.workspace.getConfiguration("aiIdeAgent")
   );
+  const providerStatus = describeProviderConfiguration(providerConfig);
   const provider = createProviderFromRuntimeConfig(providerConfig);
   let pendingProposal: FileProposal | undefined;
   let pendingSourceChanges: SourceChangeProposal[] = [];
@@ -78,7 +79,10 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       contextCount: currentLifecycle?.contextLedger.length ?? 0,
       changeCapsuleCount: currentLifecycle?.changeCapsules.length ?? 0,
       verificationStatus: verificationResults[0]?.status ?? currentLifecycle?.verification[0]?.status ?? "skipped",
-      providerName: provider.displayName,
+      providerName: providerStatus.providerLabel,
+      modelName: providerStatus.modelLabel,
+      providerStatusMessage: providerStatus.message,
+      providerReady: providerStatus.ok,
       errorMessage,
       proposalPath: pendingSourceChanges[0]?.targetPath ?? pendingProposal?.relativePath,
       proposalPaths: pendingSourceChanges.length > 0
@@ -153,7 +157,10 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     contextCount: 0,
     changeCapsuleCount: 0,
     verificationStatus: "skipped",
-    providerName: provider.displayName
+    providerName: providerStatus.providerLabel,
+    modelName: providerStatus.modelLabel,
+    providerStatusMessage: providerStatus.message,
+    providerReady: providerStatus.ok
   });
 
   panel.webview.onDidReceiveMessage(async (message) => {
@@ -234,8 +241,27 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "skipped",
-        providerName: provider.displayName,
+        providerName: providerStatus.providerLabel,
+        modelName: providerStatus.modelLabel,
+        providerStatusMessage: providerStatus.message,
+        providerReady: providerStatus.ok,
         errorMessage: "Enter a task goal before running the agent."
+      });
+      return;
+    }
+
+    if (!providerStatus.ok) {
+      panel.webview.html = renderPanelHtml({
+        state: "Blocked",
+        taskGoal: goal,
+        contextCount: 0,
+        changeCapsuleCount: 0,
+        verificationStatus: "skipped",
+        providerName: providerStatus.providerLabel,
+        modelName: providerStatus.modelLabel,
+        providerStatusMessage: providerStatus.message,
+        providerReady: providerStatus.ok,
+        errorMessage: providerStatus.message
       });
       return;
     }
@@ -281,7 +307,10 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "failed",
-        providerName: provider.displayName,
+        providerName: providerStatus.providerLabel,
+        modelName: providerStatus.modelLabel,
+        providerStatusMessage: providerStatus.message,
+        providerReady: providerStatus.ok,
         errorMessage: error instanceof Error ? error.message : "Agent task failed."
       });
     }

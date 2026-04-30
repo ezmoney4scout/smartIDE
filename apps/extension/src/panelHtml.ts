@@ -7,6 +7,9 @@ export interface PanelViewModel {
   changeCapsuleCount: number;
   verificationStatus: string;
   providerName?: string;
+  modelName?: string;
+  providerStatusMessage?: string;
+  providerReady?: boolean;
   errorMessage?: string;
   proposalPath?: string;
   proposalPaths?: string[];
@@ -29,6 +32,8 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const taskGoal = escapeHtml(viewModel.taskGoal);
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
+  const modelName = escapeHtml(viewModel.modelName ?? "mock-model");
+  const providerStatusMessage = viewModel.providerStatusMessage ? escapeHtml(viewModel.providerStatusMessage) : "";
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
     .map(escapeHtml);
@@ -160,6 +165,8 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <h1>AI IDE Agent</h1>
         <p class="meta">State: <span class="value">${state}</span></p>
         <p class="meta">Provider: <span class="value">${providerName}</span></p>
+        <p class="meta">Model: <span class="value">${modelName}</span></p>
+        ${providerStatusMessage ? `<p class="${viewModel.providerReady === false ? "error" : "meta"}">${providerStatusMessage}</p>` : ""}
       </header>
 
       <form id="task-form">
