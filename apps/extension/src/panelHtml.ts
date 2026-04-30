@@ -10,6 +10,10 @@ export interface PanelViewModel {
   estimatedCostUsd?: number;
   contextLedger?: ContextLedgerEntry[];
   providerName?: string;
+  providerId?: string;
+  providerBaseUrl?: string;
+  providerDefaultModel?: string;
+  apiKeyConfigured?: boolean;
   modelName?: string;
   providerStatusMessage?: string;
   providerReady?: boolean;
@@ -45,6 +49,9 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const taskGoal = escapeHtml(viewModel.taskGoal);
   const verificationStatus = escapeHtml(viewModel.verificationStatus);
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
+  const providerId = viewModel.providerId ?? "mock";
+  const providerBaseUrl = escapeHtml(viewModel.providerBaseUrl ?? "");
+  const providerDefaultModel = escapeHtml(viewModel.providerDefaultModel ?? "");
   const modelName = escapeHtml(viewModel.modelName ?? "mock-model");
   const budget = viewModel.budget;
   const providerStatusMessage = viewModel.providerStatusMessage ? escapeHtml(viewModel.providerStatusMessage) : "";
@@ -65,6 +72,13 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       ...memoryProposal.pitfalls.map((value) => ({ label: "Pitfall", value }))
     ]
     : [];
+  const providerOptions = [
+    { value: "mock", label: "Mock" },
+    { value: "openai-compatible", label: "OpenAI-compatible" },
+    { value: "minimax", label: "Minimax" },
+    { value: "kimi", label: "Kimi" },
+    { value: "glm", label: "GLM" }
+  ];
 
   return `<!doctype html>
 <html lang="en">
@@ -127,17 +141,35 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         margin-bottom: 16px;
       }
 
-      textarea {
+      .settings-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-bottom: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        color: var(--vscode-descriptionForeground);
+      }
+
+      textarea,
+      input,
+      select {
         box-sizing: border-box;
-        min-height: 96px;
         width: 100%;
-        resize: vertical;
         border: 1px solid var(--vscode-input-border);
         border-radius: 4px;
         padding: 10px;
         color: var(--vscode-input-foreground);
         background: var(--vscode-input-background);
         font: inherit;
+      }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
       }
 
       button {
@@ -228,6 +260,31 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       </form>
 
       ${errorMessage ? `<p class="error">${errorMessage}</p>` : ""}
+
+      <section aria-labelledby="provider-settings-title">
+        <h2 id="provider-settings-title">Provider Settings</h2>
+        <form id="provider-settings-form">
+          <div class="settings-grid">
+            <label for="ai-provider">Provider
+              <select id="ai-provider" name="provider">
+                ${providerOptions
+                  .map((option) => `<option value="${option.value}"${option.value === providerId ? " selected" : ""}>${option.label}</option>`)
+                  .join("")}
+              </select>
+            </label>
+            <label for="ai-model">Model
+              <input id="ai-model" name="defaultModel" type="text" value="${providerDefaultModel}" placeholder="${modelName}">
+            </label>
+            <label for="ai-base-url">Base URL
+              <input id="ai-base-url" name="baseUrl" type="text" value="${providerBaseUrl}" placeholder="Provider default">
+            </label>
+            <label for="ai-api-key">API Key
+              <input id="ai-api-key" name="apiKey" type="password" placeholder="${viewModel.apiKeyConfigured ? "Configured - enter a new key to replace" : "Required for hosted providers"}">
+            </label>
+          </div>
+          <button type="submit">Save Provider Settings</button>
+        </form>
+      </section>
 
       ${proposalPaths.length > 0
         ? `<section aria-labelledby="proposal-title">
@@ -331,10 +388,22 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       const vscode = acquireVsCodeApi();
       const form = document.getElementById("task-form");
       const goal = document.getElementById("task-goal");
+      const providerSettingsForm = document.getElementById("provider-settings-form");
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         vscode.postMessage({ type: "runTask", goal: goal.value });
+      });
+
+      providerSettingsForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        vscode.postMessage({
+          type: "saveProviderSettings",
+          provider: document.getElementById("ai-provider").value,
+          defaultModel: document.getElementById("ai-model").value,
+          baseUrl: document.getElementById("ai-base-url").value,
+          apiKey: document.getElementById("ai-api-key").value
+        });
       });
 
       document.getElementById("preview-proposal")?.addEventListener("click", () => {

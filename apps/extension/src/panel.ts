@@ -5,7 +5,11 @@ import type * as vscode from "vscode";
 import { createFileProposal, type FileProposal } from "./fileProposal.js";
 import { mergeMemoryProposal } from "./memoryProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
-import { describeProviderConfiguration, resolveExtensionProviderRuntimeConfig } from "./settings.js";
+import {
+  describeProviderConfiguration,
+  isRuntimeProviderId,
+  resolveExtensionProviderRuntimeConfig
+} from "./settings.js";
 import { createSourceChangeProposal, type SourceChangeProposal } from "./sourceChangeProposal.js";
 import { runVerificationCommands } from "./verificationRunner.js";
 import type { TaskLifecycle, VerificationEvidence } from "@ai-ide-agent/protocol";
@@ -31,12 +35,21 @@ interface AcceptMemoryUpdateMessage {
   type: "acceptMemoryUpdate";
 }
 
+interface SaveProviderSettingsMessage {
+  type: "saveProviderSettings";
+  provider: string;
+  apiKey?: string;
+  baseUrl?: string;
+  defaultModel?: string;
+}
+
 type PanelMessage =
   | RunTaskMessage
   | PreviewProposalMessage
   | ApplyProposalMessage
   | ApplyWithoutVerificationMessage
-  | AcceptMemoryUpdateMessage;
+  | AcceptMemoryUpdateMessage
+  | SaveProviderSettingsMessage;
 
 function isRunTaskMessage(message: unknown): message is RunTaskMessage {
   return (
@@ -58,7 +71,8 @@ function isPanelMessage(message: unknown): message is PanelMessage {
       (message.type === "previewProposal" ||
         message.type === "applyProposal" ||
         message.type === "applyWithoutVerification" ||
-        message.type === "acceptMemoryUpdate"))
+        message.type === "acceptMemoryUpdate" ||
+        message.type === "saveProviderSettings"))
   );
 }
 
@@ -73,17 +87,38 @@ function sourceUri(vscodeApi: typeof vscode, workspaceRootUri: vscode.Uri, propo
 export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   const workspaceRoot = vscodeApi.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
   const workspaceRootUri = vscodeApi.workspace.workspaceFolders?.[0]?.uri ?? vscodeApi.Uri.file(workspaceRoot);
-  const providerConfig = resolveExtensionProviderRuntimeConfig(
+  let providerConfig = resolveExtensionProviderRuntimeConfig(
     vscodeApi.workspace.getConfiguration("aiIdeAgent")
   );
-  const providerStatus = describeProviderConfiguration(providerConfig);
-  const provider = createProviderFromRuntimeConfig(providerConfig);
+  let providerStatus = describeProviderConfiguration(providerConfig);
+  let provider = createProviderFromRuntimeConfig(providerConfig);
   const store = new LocalProjectStore(workspaceRoot);
   let pendingProposal: FileProposal | undefined;
   let pendingSourceChanges: SourceChangeProposal[] = [];
   let currentLifecycle: TaskLifecycle | undefined;
   let verificationResults: VerificationEvidence[] = [];
   let memoryStatusMessage = "Review before writing to project memory.";
+
+  function reloadProviderRuntimeConfig(): void {
+    providerConfig = resolveExtensionProviderRuntimeConfig(
+      vscodeApi.workspace.getConfiguration("aiIdeAgent")
+    );
+    providerStatus = describeProviderConfiguration(providerConfig);
+    provider = createProviderFromRuntimeConfig(providerConfig);
+  }
+
+  function providerSettingsViewModel() {
+    return {
+      providerName: providerStatus.providerLabel,
+      providerId: providerConfig.provider,
+      providerBaseUrl: providerConfig.baseUrl,
+      providerDefaultModel: providerConfig.defaultModel,
+      apiKeyConfigured: Boolean(providerConfig.apiKey),
+      modelName: providerStatus.modelLabel,
+      providerStatusMessage: providerStatus.message,
+      providerReady: providerStatus.ok
+    };
+  }
 
   function renderCurrentPanel(errorMessage?: string): void {
     panel.webview.html = renderPanelHtml({
@@ -95,10 +130,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       verificationStatus: verificationResults[0]?.status ?? currentLifecycle?.verification[0]?.status ?? "skipped",
       budget: currentLifecycle?.request.budget,
       estimatedCostUsd: currentLifecycle?.taskSpec.estimatedCostUsd,
-      providerName: providerStatus.providerLabel,
-      modelName: providerStatus.modelLabel,
-      providerStatusMessage: providerStatus.message,
-      providerReady: providerStatus.ok,
+      ...providerSettingsViewModel(),
       errorMessage,
       proposalPath: pendingSourceChanges[0]?.targetPath ?? pendingProposal?.relativePath,
       proposalPaths: pendingSourceChanges.length > 0
@@ -175,14 +207,31 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     contextCount: 0,
     changeCapsuleCount: 0,
     verificationStatus: "skipped",
-    providerName: providerStatus.providerLabel,
-    modelName: providerStatus.modelLabel,
-    providerStatusMessage: providerStatus.message,
-    providerReady: providerStatus.ok
+    ...providerSettingsViewModel()
   });
 
   panel.webview.onDidReceiveMessage(async (message) => {
     if (!isPanelMessage(message)) {
+      return;
+    }
+
+    if (message.type === "saveProviderSettings") {
+      if (!isRuntimeProviderId(message.provider)) {
+        await vscodeApi.window.showWarningMessage("Choose a supported smartIDE provider.");
+        return;
+      }
+
+      const configuration = vscodeApi.workspace.getConfiguration("aiIdeAgent");
+      const target = vscodeApi.ConfigurationTarget.Workspace;
+      await configuration.update("provider", message.provider, target);
+      await configuration.update("baseUrl", message.baseUrl?.trim() ?? "", target);
+      await configuration.update("defaultModel", message.defaultModel?.trim() ?? "", target);
+      if (message.apiKey?.trim()) {
+        await configuration.update("apiKey", message.apiKey.trim(), target);
+      }
+      reloadProviderRuntimeConfig();
+      await vscodeApi.window.showInformationMessage("smartIDE provider settings saved.");
+      renderCurrentPanel();
       return;
     }
 
@@ -273,10 +322,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "skipped",
-        providerName: providerStatus.providerLabel,
-        modelName: providerStatus.modelLabel,
-        providerStatusMessage: providerStatus.message,
-        providerReady: providerStatus.ok,
+        ...providerSettingsViewModel(),
         errorMessage: "Enter a task goal before running the agent."
       });
       return;
@@ -289,10 +335,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "skipped",
-        providerName: providerStatus.providerLabel,
-        modelName: providerStatus.modelLabel,
-        providerStatusMessage: providerStatus.message,
-        providerReady: providerStatus.ok,
+        ...providerSettingsViewModel(),
         errorMessage: providerStatus.message
       });
       return;
@@ -340,10 +383,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "failed",
-        providerName: providerStatus.providerLabel,
-        modelName: providerStatus.modelLabel,
-        providerStatusMessage: providerStatus.message,
-        providerReady: providerStatus.ok,
+        ...providerSettingsViewModel(),
         errorMessage: error instanceof Error ? error.message : "Agent task failed."
       });
     }

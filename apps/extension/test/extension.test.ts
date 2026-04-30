@@ -18,6 +18,10 @@ describe("extension panel HTML", () => {
       estimatedCostUsd: 0.02,
       providerName: "Kimi",
       modelName: "kimi-k2.5",
+      providerId: "kimi",
+      providerBaseUrl: "https://api.moonshot.ai/v1",
+      providerDefaultModel: "kimi-k2.5",
+      apiKeyConfigured: false,
       providerStatusMessage: "Kimi requires an API key.",
       providerReady: false,
       contextLedger: [
@@ -65,6 +69,14 @@ describe("extension panel HTML", () => {
     expect(html).toContain("Kimi");
     expect(html).toContain("kimi-k2.5");
     expect(html).toContain("Kimi requires an API key.");
+    expect(html).toContain("Provider Settings");
+    expect(html).toContain("ai-provider");
+    expect(html).toContain("openai-compatible");
+    expect(html).toContain("minimax");
+    expect(html).toContain("glm");
+    expect(html).toContain("https://api.moonshot.ai/v1");
+    expect(html).toContain("Save Provider Settings");
+    expect(html).toContain("saveProviderSettings");
     expect(html).toContain("textarea");
     expect(html).toContain("runTask");
     expect(html).toContain("Context Ledger");

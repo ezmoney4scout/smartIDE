@@ -21,7 +21,7 @@ function settingValue<T>(configuration: ExtensionConfiguration, key: string): T 
   return value === "" ? undefined : value;
 }
 
-function isRuntimeProviderId(value: unknown): value is RuntimeProviderId {
+export function isRuntimeProviderId(value: unknown): value is RuntimeProviderId {
   return value === "mock" || value === "openai-compatible" || value === "minimax" || value === "kimi" || value === "glm";
 }
 

@@ -21,6 +21,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Mock provider
 - OpenAI-compatible provider adapter
 - Minimax, Kimi, and GLM provider presets
+- Provider Settings UI
 - Context Ledger model
 - Full Context Ledger panel entries
 - Task Spec model
@@ -73,9 +74,9 @@ Supported provider values:
 | `kimi` | `KIMI_API_KEY` | `https://api.moonshot.ai/v1` |
 | `glm` | `GLM_API_KEY` | `https://open.bigmodel.cn/api/paas/v4` |
 
-The VS Code-compatible extension also exposes `aiIdeAgent.provider`, `aiIdeAgent.apiKey`, `aiIdeAgent.baseUrl`, and `aiIdeAgent.defaultModel` settings. Environment variables are safer for shared workspaces because they reduce the chance of committing secrets.
+The VS Code-compatible extension includes a Provider Settings form in the smartIDE panel and also exposes `aiIdeAgent.provider`, `aiIdeAgent.apiKey`, `aiIdeAgent.baseUrl`, and `aiIdeAgent.defaultModel` settings. Environment variables are safer for shared workspaces because they reduce the chance of committing secrets.
 
-The extension panel shows the active provider, model, and configuration status before a task runs. Hosted providers are blocked with a clear message when their API key is missing; the `mock` provider remains zero-config for local demos and CI.
+The extension panel shows the active provider, model, and configuration status before a task runs. Users can update provider, model, base URL, and API key from the panel; API keys are accepted for saving but never rendered back into the webview. Hosted providers are blocked with a clear message when their API key is missing; the `mock` provider remains zero-config for local demos and CI.
 
 Example extension settings:
 
@@ -152,7 +153,6 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 ## Roadmap
 
-- Provider settings UI
 - Verification runners
 - Debug Hypothesis Mode
 - Standalone desktop IDE exploration
