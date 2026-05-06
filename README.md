@@ -21,6 +21,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Mock provider
 - OpenAI-compatible provider adapter
 - Minimax, Kimi, and GLM provider presets
+- Recommended/free model presets
 - Provider Settings UI
 - smartIDE Chat Activity Bar sidebar
 - Open smartIDE Chat on startup
@@ -72,7 +73,7 @@ Copy `.env.example` into your shell or local environment manager, then choose a 
 ```bash
 AI_IDE_AGENT_PROVIDER=kimi
 KIMI_API_KEY=your-api-key
-AI_IDE_AGENT_MODEL=kimi-k2.5
+AI_IDE_AGENT_MODEL=kimi-k2.6
 ```
 
 Supported provider values:
@@ -87,7 +88,19 @@ Supported provider values:
 
 The VS Code-compatible extension includes a Provider Settings form in the smartIDE panel and also exposes `aiIdeAgent.provider`, `aiIdeAgent.apiKey`, `aiIdeAgent.baseUrl`, and `aiIdeAgent.defaultModel` settings. Environment variables are safer for shared workspaces because they reduce the chance of committing secrets.
 
-The extension panel shows the active provider, model, and configuration status before a task runs. Users can update provider, model, base URL, and API key from the panel; API keys are accepted for saving but never rendered back into the webview. Hosted providers are blocked with a clear message when their API key is missing; the `mock` provider remains zero-config for local demos and CI.
+The extension panel shows the active provider, model, and configuration status before a task runs. Users can update provider, recommended model, custom model, base URL, and API key from the panel; API keys are accepted for saving but never rendered back into the webview. Hosted providers are blocked with a clear message when their API key is missing; the `mock` provider remains zero-config for local demos and CI.
+
+The Recommended Models dropdown is designed for first-run onboarding:
+
+| Provider | Recommended models | API key |
+| --- | --- | --- |
+| `mock` | `mock-model` | Not needed |
+| `glm` | `glm-4.7-flash`, `glm-4-flash-250414`, `glm-4.6v-flash` | Required; GLM provides free-model/free-quota options on its platform |
+| `kimi` | `kimi-k2.6`, `kimi-k2.5` | Required |
+| `minimax` | `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`, `MiniMax-M2.5` | Required |
+| `openai-compatible` | custom model ID | Required for hosted APIs |
+
+For an open-source release, smartIDE does not ship a shared hosted API key. Users can try the local mock provider without setup, then add their own provider key when they want real model calls.
 
 Example extension settings:
 
@@ -95,7 +108,7 @@ Example extension settings:
 {
   "aiIdeAgent.provider": "glm",
   "aiIdeAgent.apiKey": "your-api-key",
-  "aiIdeAgent.defaultModel": "glm-4.6"
+  "aiIdeAgent.defaultModel": "glm-4.7-flash"
 }
 ```
 

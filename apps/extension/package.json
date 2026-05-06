@@ -74,7 +74,7 @@
         "aiIdeAgent.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for the selected provider. Environment variables are recommended for shared workspaces."
+          "description": "API key for the selected hosted provider. The mock provider does not need one. Environment variables are recommended for shared workspaces."
         },
         "aiIdeAgent.baseUrl": {
           "type": "string",
@@ -84,7 +84,7 @@
         "aiIdeAgent.defaultModel": {
           "type": "string",
           "default": "",
-          "description": "Default model for the selected provider."
+          "description": "Default model for the selected provider, such as mock-model, glm-4.7-flash, kimi-k2.6, or MiniMax-M2.7."
         }
       }
     }

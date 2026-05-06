@@ -57,7 +57,7 @@ export const baselineCapabilities: ProviderCapabilities = {
 
 export { createMockProvider } from "./mockProvider.js";
 export { createOpenAiCompatibleProvider } from "./openAiCompatibleProvider.js";
-export { createProviderFromPreset, providerPresets } from "./providerPresets.js";
-export type { ProviderPreset, ProviderPresetId } from "./providerPresets.js";
+export { createProviderFromPreset, getProviderModelPresets, providerModelPresets, providerPresets } from "./providerPresets.js";
+export type { ModelPresetProviderId, ModelPresetTier, ProviderModelPreset, ProviderPreset, ProviderPresetId } from "./providerPresets.js";
 export { createProviderFromRuntimeConfig, resolveProviderRuntimeConfig } from "./runtimeConfig.js";
 export type { ProviderRuntimeConfig, RuntimeProviderId } from "./runtimeConfig.js";

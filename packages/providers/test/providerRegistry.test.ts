@@ -3,7 +3,9 @@ import {
   createMockProvider,
   createProviderFromRuntimeConfig,
   createProviderFromPreset,
+  getProviderModelPresets,
   ProviderRegistry,
+  providerModelPresets,
   providerPresets,
   resolveProviderRuntimeConfig
 } from "../src/index.js";
@@ -40,8 +42,32 @@ describe("ProviderRegistry", () => {
     expect(kimi.displayName).toBe("Kimi");
     expect(glm.displayName).toBe("GLM");
     await expect(glm.listModels()).resolves.toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "glm-5.1" })])
+      expect.arrayContaining([expect.objectContaining({ id: "glm-4.7-flash" })])
     );
+  });
+
+  it("exposes onboarding model presets with API-key requirements", () => {
+    expect(providerModelPresets.mock).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "mock-model",
+          requiresApiKey: false,
+          tier: "local-free"
+        })
+      ])
+    );
+    expect(getProviderModelPresets("glm")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "glm-4.7-flash",
+          requiresApiKey: true,
+          tier: "free-quota"
+        })
+      ])
+    );
+    expect(getProviderModelPresets("kimi").map((preset) => preset.id)).toContain("kimi-k2.6");
+    expect(getProviderModelPresets("minimax").map((preset) => preset.id)).toContain("MiniMax-M2.7");
+    expect(getProviderModelPresets("openai-compatible")).toEqual([]);
   });
 
   it("resolves provider runtime config from generic and provider-specific env vars", () => {

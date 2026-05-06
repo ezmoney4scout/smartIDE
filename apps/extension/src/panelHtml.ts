@@ -1,4 +1,5 @@
 import type { BudgetHint, ContextLedgerEntry, MemoryUpdateProposal, VerificationEvidence } from "@ai-ide-agent/protocol";
+import { getProviderModelPresets, providerModelPresets, type ModelPresetProviderId } from "@ai-ide-agent/providers";
 import type { CodeApprovalMode, PreWriteCodeReview } from "./codeReview.js";
 
 export interface PanelViewModel {
@@ -47,6 +48,10 @@ function formatTokenLimit(value: number | undefined, label: string): string {
   return value === undefined ? `No ${label} limit` : `${value.toLocaleString("en-US")} ${label} tokens`;
 }
 
+function escapeScriptJson(value: unknown): string {
+  return JSON.stringify(value).replaceAll("</", "<\\/");
+}
+
 export function renderPanelHtml(viewModel: PanelViewModel): string {
   const state = escapeHtml(viewModel.state);
   const taskGoal = escapeHtml(viewModel.taskGoal);
@@ -84,6 +89,16 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
     { value: "kimi", label: "Kimi" },
     { value: "glm", label: "GLM" }
   ];
+  const modelPresetProviderId: ModelPresetProviderId =
+    providerId === "mock" ||
+    providerId === "openai-compatible" ||
+    providerId === "minimax" ||
+    providerId === "kimi" ||
+    providerId === "glm"
+      ? providerId
+      : "mock";
+  const selectedModelPresets = getProviderModelPresets(modelPresetProviderId);
+  const selectedModelId = viewModel.providerDefaultModel || viewModel.modelName || "";
 
   return `<!doctype html>
 <html lang="en">
@@ -240,6 +255,12 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         font-size: 12px;
       }
 
+      .field-hint {
+        min-height: 18px;
+        color: var(--vscode-descriptionForeground);
+        font-size: 12px;
+      }
+
       pre {
         overflow-x: auto;
         border-radius: 4px;
@@ -283,7 +304,19 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
                   .join("")}
               </select>
             </label>
-            <label for="ai-model">Model
+            <label for="ai-model-preset">Recommended Models
+              <select id="ai-model-preset" name="modelPreset">
+                <option value="">Custom model</option>
+                ${selectedModelPresets
+                  .map((preset) => {
+                    const label = `${preset.label} (${preset.id}) - ${preset.description}`;
+                    return `<option value="${escapeHtml(preset.id)}"${preset.id === selectedModelId ? " selected" : ""}>${escapeHtml(label)}</option>`;
+                  })
+                  .join("")}
+              </select>
+              <span id="model-preset-hint" class="field-hint"></span>
+            </label>
+            <label for="ai-model">Custom Model
               <input id="ai-model" name="defaultModel" type="text" value="${providerDefaultModel}" placeholder="${modelName}">
             </label>
             <label for="ai-base-url">Base URL
@@ -409,24 +442,79 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
     </main>
     <script>
       const vscode = acquireVsCodeApi();
+      const providerModelPresets = ${escapeScriptJson(providerModelPresets)};
       const form = document.getElementById("task-form");
       const goal = document.getElementById("task-goal");
       const approvalMode = document.getElementById("approval-mode");
       const providerSettingsForm = document.getElementById("provider-settings-form");
+      const providerSelect = document.getElementById("ai-provider");
+      const modelPresetSelect = document.getElementById("ai-model-preset");
+      const modelPresetHint = document.getElementById("model-preset-hint");
+      const modelInput = document.getElementById("ai-model");
+      const apiKeyInput = document.getElementById("ai-api-key");
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         vscode.postMessage({ type: "runTask", goal: goal.value, approvalMode: approvalMode.value });
       });
 
+      function describeModelPreset(preset) {
+        if (!preset) {
+          return "Use a custom model ID from your provider.";
+        }
+        return preset.description;
+      }
+
+      function updateApiKeyPlaceholder(providerId, preset) {
+        if (providerId === "mock" || preset?.requiresApiKey === false) {
+          apiKeyInput.placeholder = "Not needed for local demo";
+          return;
+        }
+        apiKeyInput.placeholder = ${escapeScriptJson(viewModel.apiKeyConfigured ? "Configured - enter a new key to replace" : "Required for hosted providers")};
+      }
+
+      function renderModelPresetOptions(providerId, selectedModel) {
+        const presets = providerModelPresets[providerId] ?? [];
+        modelPresetSelect.replaceChildren(new Option("Custom model", ""));
+        for (const preset of presets) {
+          const option = new Option(\`\${preset.label} (\${preset.id}) - \${preset.description}\`, preset.id);
+          option.selected = preset.id === selectedModel;
+          modelPresetSelect.add(option);
+        }
+        const selectedPreset = presets.find((preset) => preset.id === modelPresetSelect.value);
+        modelPresetHint.textContent = describeModelPreset(selectedPreset);
+        updateApiKeyPlaceholder(providerId, selectedPreset);
+      }
+
+      providerSelect.addEventListener("change", () => {
+        const presets = providerModelPresets[providerSelect.value] ?? [];
+        const firstPreset = presets[0];
+        if (firstPreset) {
+          modelInput.value = firstPreset.id;
+        }
+        renderModelPresetOptions(providerSelect.value, modelInput.value);
+      });
+
+      modelPresetSelect.addEventListener("change", () => {
+        const presets = providerModelPresets[providerSelect.value] ?? [];
+        const selectedPreset = presets.find((preset) => preset.id === modelPresetSelect.value);
+        if (selectedPreset) {
+          modelInput.value = selectedPreset.id;
+        }
+        modelPresetHint.textContent = describeModelPreset(selectedPreset);
+        updateApiKeyPlaceholder(providerSelect.value, selectedPreset);
+      });
+
+      renderModelPresetOptions(providerSelect.value, modelInput.value);
+
       providerSettingsForm.addEventListener("submit", (event) => {
         event.preventDefault();
         vscode.postMessage({
           type: "saveProviderSettings",
-          provider: document.getElementById("ai-provider").value,
-          defaultModel: document.getElementById("ai-model").value,
+          provider: providerSelect.value,
+          defaultModel: modelInput.value,
           baseUrl: document.getElementById("ai-base-url").value,
-          apiKey: document.getElementById("ai-api-key").value
+          apiKey: apiKeyInput.value
         });
       });
 
