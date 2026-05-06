@@ -15,8 +15,14 @@
   "engines": {
     "vscode": "^1.96.0"
   },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
   "categories": ["Other"],
   "activationEvents": [
+    "*",
     "onCommand:aiIdeAgent.openPanel",
     "onCommand:aiIdeAgent.focusChat",
     "onView:aiIdeAgent.chatView",
@@ -46,7 +52,8 @@
       "aiIdeAgent": [
         {
           "id": "aiIdeAgent.chatView",
-          "name": "Chat"
+          "name": "Chat",
+          "type": "webview"
         }
       ]
     },

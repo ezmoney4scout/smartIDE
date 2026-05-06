@@ -18,6 +18,26 @@ async function focusSmartIdeChat(vscodeApi: typeof vscode): Promise<void> {
   await vscodeApi.commands.executeCommand(`${chatViewId}.focus`);
 }
 
+function focusSmartIdeChatWithRetry(vscodeApi: typeof vscode, attempts = 5): void {
+  let attempt = 0;
+  const focus = async () => {
+    try {
+      await focusSmartIdeChat(vscodeApi);
+    } catch {
+      attempt += 1;
+      if (attempt < attempts) {
+        setTimeout(() => {
+          void focus();
+        }, 500);
+      }
+    }
+  };
+
+  setTimeout(() => {
+    void focus();
+  }, 500);
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const chatProvider = new SmartIdeChatViewProvider(vscode);
   const chatRegistration = vscode.window.registerWebviewViewProvider(
@@ -36,9 +56,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const openOnStartup = vscode.workspace.getConfiguration("aiIdeAgent").get<boolean>("openOnStartup", true);
   if (openOnStartup) {
-    setTimeout(() => {
-      void focusSmartIdeChat(vscode);
-    }, 250);
+    focusSmartIdeChatWithRetry(vscode);
   }
 }
 
