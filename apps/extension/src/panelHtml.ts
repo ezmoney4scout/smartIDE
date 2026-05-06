@@ -1,4 +1,5 @@
 import type { BudgetHint, ContextLedgerEntry, MemoryUpdateProposal, VerificationEvidence } from "@ai-ide-agent/protocol";
+import type { CodeApprovalMode, PreWriteCodeReview } from "./codeReview.js";
 
 export interface PanelViewModel {
   state: string;
@@ -21,6 +22,8 @@ export interface PanelViewModel {
   proposalPath?: string;
   proposalPaths?: string[];
   riskNote?: string;
+  approvalMode?: CodeApprovalMode;
+  preWriteReview?: PreWriteCodeReview;
   verificationCommands?: string[];
   verificationResults?: VerificationEvidence[];
   memoryProposal?: MemoryUpdateProposal;
@@ -56,12 +59,14 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const budget = viewModel.budget;
   const providerStatusMessage = viewModel.providerStatusMessage ? escapeHtml(viewModel.providerStatusMessage) : "";
   const errorMessage = viewModel.errorMessage ? escapeHtml(viewModel.errorMessage) : "";
+  const approvalMode = viewModel.approvalMode ?? "manual";
   const proposalPaths = (viewModel.proposalPaths?.length ? viewModel.proposalPaths : viewModel.proposalPath ? [viewModel.proposalPath] : [])
     .map(escapeHtml);
   const contextLedger = viewModel.contextLedger ?? [];
   const riskNote = viewModel.riskNote ? escapeHtml(viewModel.riskNote) : "";
   const verificationCommands = (viewModel.verificationCommands ?? []).map(escapeHtml);
   const verificationResults = viewModel.verificationResults ?? [];
+  const preWriteReview = viewModel.preWriteReview;
   const memoryProposal = viewModel.memoryProposal;
   const memoryStatusMessage = viewModel.memoryStatusMessage ? escapeHtml(viewModel.memoryStatusMessage) : "";
   const memoryProposalEntries = memoryProposal
@@ -256,6 +261,12 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
 
       <form id="task-form">
         <textarea id="task-goal" name="goal" aria-label="Task goal">${taskGoal}</textarea>
+        <label for="approval-mode">Automation Mode
+          <select id="approval-mode" name="approvalMode">
+            <option value="manual"${approvalMode === "manual" ? " selected" : ""}>Human Approval</option>
+            <option value="auto"${approvalMode === "auto" ? " selected" : ""}>Full Automation</option>
+          </select>
+        </label>
         <button type="submit">Run Agent Task</button>
       </form>
 
@@ -296,8 +307,8 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         </ul>
         <div class="actions">
           <button type="button" id="preview-proposal">Preview Diff</button>
-          <button type="button" id="apply-proposal">Apply & Run Selected Verification</button>
-          <button type="button" id="apply-without-verification">Apply Without Verification</button>
+          <button type="button" id="apply-proposal">Approve & Apply Selected Verification</button>
+          <button type="button" id="apply-without-verification">Approve & Apply Without Verification</button>
         </div>
       </section>`
         : ""}
@@ -346,6 +357,21 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <p><span class="value">${viewModel.changeCapsuleCount}</span> proposed implementation capsule.</p>
       </section>
 
+      ${preWriteReview
+        ? `<section aria-labelledby="pre-write-review-title">
+        <h2 id="pre-write-review-title">Pre-write Code Review</h2>
+        <p>Current status: <span class="value">${escapeHtml(preWriteReview.status)}</span></p>
+        <p class="meta">${escapeHtml(preWriteReview.summary)}</p>
+        <ul>
+          ${preWriteReview.findings
+            .map((finding) => `<li>
+              <p><span class="value">${escapeHtml(finding.severity)}</span>${finding.path ? ` ${escapeHtml(finding.path)}` : ""}: ${escapeHtml(finding.message)}</p>
+            </li>`)
+            .join("")}
+        </ul>
+      </section>`
+        : ""}
+
       <section aria-labelledby="verification-gate-title">
         <h2 id="verification-gate-title">Verification Gate</h2>
         <p>Current status: <span class="value">${verificationStatus}</span></p>
@@ -385,11 +411,12 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       const vscode = acquireVsCodeApi();
       const form = document.getElementById("task-form");
       const goal = document.getElementById("task-goal");
+      const approvalMode = document.getElementById("approval-mode");
       const providerSettingsForm = document.getElementById("provider-settings-form");
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        vscode.postMessage({ type: "runTask", goal: goal.value });
+        vscode.postMessage({ type: "runTask", goal: goal.value, approvalMode: approvalMode.value });
       });
 
       providerSettingsForm.addEventListener("submit", (event) => {

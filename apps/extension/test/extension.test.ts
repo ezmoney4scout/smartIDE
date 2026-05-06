@@ -47,6 +47,20 @@ describe("extension panel HTML", () => {
       proposalPath: ".ai-ide-agent/proposals/task.md",
       proposalPaths: ["src/one.ts", "src/two.ts"],
       riskNote: "Review 2 files before applying.",
+      approvalMode: "manual",
+      preWriteReview: {
+        approvalMode: "manual",
+        status: "needs-human-approval",
+        canAutoApply: false,
+        summary: "Code write is waiting for human approval.",
+        findings: [
+          {
+            severity: "info",
+            path: "src/one.ts",
+            message: "Proposed change is ready for user review before writing."
+          }
+        ]
+      },
       verificationCommands: ["npm test", "npm run typecheck"],
       verificationResults: [
         {
@@ -77,6 +91,10 @@ describe("extension panel HTML", () => {
     expect(html).toContain("https://api.moonshot.ai/v1");
     expect(html).toContain("Save Provider Settings");
     expect(html).toContain("saveProviderSettings");
+    expect(html).toContain("Automation Mode");
+    expect(html).toContain("Human Approval");
+    expect(html).toContain("Full Automation");
+    expect(html).toContain("approvalMode");
     expect(html).toContain("textarea");
     expect(html).toContain("runTask");
     expect(html).toContain("Context Ledger");
@@ -94,14 +112,17 @@ describe("extension panel HTML", () => {
     expect(html).toContain("800 output tokens");
     expect(html).toContain("$0.02");
     expect(html).toContain("Change Capsules");
+    expect(html).toContain("Pre-write Code Review");
+    expect(html).toContain("needs-human-approval");
+    expect(html).toContain("Proposed change is ready for user review before writing.");
     expect(html).toContain("Verification Gate");
     expect(html).toContain("verification-commands");
     expect(html).toContain("runVerificationCommands");
     expect(html).toContain("npm test");
     expect(html).toContain("15 passed");
     expect(html).toContain("Preview Diff");
-    expect(html).toContain("Apply & Run Selected Verification");
-    expect(html).toContain("Apply Without Verification");
+    expect(html).toContain("Approve & Apply Selected Verification");
+    expect(html).toContain("Approve & Apply Without Verification");
     expect(html).toContain("npm run typecheck");
     expect(html).toContain("Review 2 files before applying.");
     expect(html).toContain("src/one.ts");

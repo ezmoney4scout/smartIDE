@@ -2,6 +2,7 @@ import { createTaskLifecycle } from "@ai-ide-agent/agent-core";
 import { createProviderFromRuntimeConfig, ProviderRegistry } from "@ai-ide-agent/providers";
 import { LocalProjectStore } from "@ai-ide-agent/storage";
 import type * as vscode from "vscode";
+import { createPreWriteCodeReview, type CodeApprovalMode, type PreWriteCodeReview } from "./codeReview.js";
 import { createFileProposal, type FileProposal } from "./fileProposal.js";
 import { mergeMemoryProposal } from "./memoryProposal.js";
 import { renderPanelHtml } from "./panelHtml.js";
@@ -17,6 +18,7 @@ import type { TaskLifecycle, VerificationEvidence } from "@ai-ide-agent/protocol
 interface RunTaskMessage {
   type: "runTask";
   goal: string;
+  approvalMode?: string;
 }
 
 interface PreviewProposalMessage {
@@ -59,8 +61,13 @@ function isRunTaskMessage(message: unknown): message is RunTaskMessage {
     "type" in message &&
     "goal" in message &&
     message.type === "runTask" &&
-    typeof message.goal === "string"
+    typeof message.goal === "string" &&
+    (!("approvalMode" in message) || typeof message.approvalMode === "string")
   );
+}
+
+function normalizeApprovalMode(value: string | undefined): CodeApprovalMode {
+  return value === "auto" ? "auto" : "manual";
 }
 
 function isPanelMessage(message: unknown): message is PanelMessage {
@@ -98,6 +105,8 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   let pendingSourceChanges: SourceChangeProposal[] = [];
   let currentLifecycle: TaskLifecycle | undefined;
   let verificationResults: VerificationEvidence[] = [];
+  let approvalMode: CodeApprovalMode = "manual";
+  let preWriteReview: PreWriteCodeReview | undefined;
   let memoryStatusMessage = "Review before writing to project memory.";
 
   function reloadProviderRuntimeConfig(): void {
@@ -142,6 +151,8 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       riskNote: pendingSourceChanges.length > 0 || pendingProposal
         ? `Review ${pendingSourceChanges.length || 1} file(s) before applying.`
         : undefined,
+      approvalMode,
+      preWriteReview,
       verificationCommands: currentLifecycle?.taskSpec.verificationPlan.commands,
       verificationResults,
       memoryProposal: currentLifecycle?.memoryProposal,
@@ -149,9 +160,25 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     });
   }
 
+  function refreshPreWriteReview(commands?: string[]): PreWriteCodeReview {
+    preWriteReview = createPreWriteCodeReview({
+      approvalMode,
+      changes: pendingSourceChanges,
+      verificationCommands: normalizeVerificationCommands(commands)
+    });
+    return preWriteReview;
+  }
+
   async function applyPendingChanges(): Promise<boolean> {
     if (pendingSourceChanges.length === 0 && !pendingProposal) {
       await vscodeApi.window.showWarningMessage("No smartIDE proposal is ready to apply.");
+      return false;
+    }
+
+    const review = preWriteReview ?? refreshPreWriteReview();
+    if (review.status === "blocked") {
+      await vscodeApi.window.showWarningMessage("smartIDE pre-write review blocked this proposal.");
+      renderCurrentPanel();
       return false;
     }
 
@@ -223,6 +250,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     contextCount: 0,
     changeCapsuleCount: 0,
     verificationStatus: "skipped",
+    approvalMode,
     ...providerSettingsViewModel()
   });
 
@@ -288,6 +316,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "applyProposal") {
+      refreshPreWriteReview(message.verificationCommands);
       if (await applyPendingChanges()) {
         await runVerificationPlan(message.verificationCommands);
       }
@@ -295,6 +324,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (message.type === "applyWithoutVerification") {
+      refreshPreWriteReview();
       if (await applyPendingChanges()) {
         verificationResults = [
           {
@@ -331,6 +361,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     const goal = message.goal.trim();
+    approvalMode = normalizeApprovalMode(message.approvalMode);
     if (!goal) {
       panel.webview.html = renderPanelHtml({
         state: "Blocked",
@@ -338,6 +369,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "skipped",
+        approvalMode,
         ...providerSettingsViewModel(),
         errorMessage: "Enter a task goal before running the agent."
       });
@@ -351,6 +383,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "skipped",
+        approvalMode,
         ...providerSettingsViewModel(),
         errorMessage: providerStatus.message
       });
@@ -375,6 +408,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       });
       currentLifecycle = lifecycle;
       verificationResults = [];
+      preWriteReview = undefined;
       memoryStatusMessage = "Review before writing to project memory.";
       pendingProposal = createFileProposal({
         taskId: lifecycle.taskSpec.taskId,
@@ -391,7 +425,11 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         }));
       }
 
+      const review = refreshPreWriteReview();
       renderCurrentPanel();
+      if (review.canAutoApply && await applyPendingChanges()) {
+        await runVerificationPlan();
+      }
     } catch (error) {
       panel.webview.html = renderPanelHtml({
         state: "Blocked",
@@ -399,6 +437,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         contextCount: 0,
         changeCapsuleCount: 0,
         verificationStatus: "failed",
+        approvalMode,
         ...providerSettingsViewModel(),
         errorMessage: error instanceof Error ? error.message : "Agent task failed."
       });
