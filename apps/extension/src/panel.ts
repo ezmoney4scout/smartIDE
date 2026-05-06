@@ -25,6 +25,7 @@ interface PreviewProposalMessage {
 
 interface ApplyProposalMessage {
   type: "applyProposal";
+  verificationCommands?: string[];
 }
 
 interface ApplyWithoutVerificationMessage {
@@ -177,17 +178,32 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     return true;
   }
 
-  async function runVerificationPlan(): Promise<void> {
+  function normalizeVerificationCommands(commands: string[] | undefined): string[] {
+    const normalized = (commands ?? currentLifecycle?.taskSpec.verificationPlan.commands ?? [])
+      .map((command) => command.trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : currentLifecycle?.taskSpec.verificationPlan.commands ?? [];
+  }
+
+  async function runVerificationPlan(commands?: string[]): Promise<void> {
     if (!currentLifecycle) {
       return;
     }
 
+    const selectedCommands = normalizeVerificationCommands(commands);
     verificationResults = await runVerificationCommands({
-      commands: currentLifecycle.taskSpec.verificationPlan.commands,
+      commands: selectedCommands,
       cwd: workspaceRoot
     });
     currentLifecycle = {
       ...currentLifecycle,
+      taskSpec: {
+        ...currentLifecycle.taskSpec,
+        verificationPlan: {
+          ...currentLifecycle.taskSpec.verificationPlan,
+          commands: selectedCommands
+        }
+      },
       verification: verificationResults,
       state: verificationResults.every((result) => result.status === "passed") ? "Verified" : "Needs Review"
     };
@@ -273,7 +289,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
 
     if (message.type === "applyProposal") {
       if (await applyPendingChanges()) {
-        await runVerificationPlan();
+        await runVerificationPlan(message.verificationCommands);
       }
       return;
     }

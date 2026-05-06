@@ -294,15 +294,9 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         <ul>
           ${proposalPaths.map((path) => `<li><span class="value">${path}</span></li>`).join("")}
         </ul>
-        ${verificationCommands.length > 0
-          ? `<p>Verification commands:</p>
-        <ul>
-          ${verificationCommands.map((command) => `<li><span class="value">${command}</span></li>`).join("")}
-        </ul>`
-          : ""}
         <div class="actions">
           <button type="button" id="preview-proposal">Preview Diff</button>
-          <button type="button" id="apply-proposal">Apply & Run Verification</button>
+          <button type="button" id="apply-proposal">Apply & Run Selected Verification</button>
           <button type="button" id="apply-without-verification">Apply Without Verification</button>
         </div>
       </section>`
@@ -355,6 +349,9 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       <section aria-labelledby="verification-gate-title">
         <h2 id="verification-gate-title">Verification Gate</h2>
         <p>Current status: <span class="value">${verificationStatus}</span></p>
+        <label for="verification-commands">Verification commands
+          <textarea id="verification-commands" name="verificationCommands" aria-label="Verification commands">${verificationCommands.join("\n")}</textarea>
+        </label>
         ${verificationResults.length > 0
           ? `<ul>
           ${verificationResults
@@ -406,12 +403,19 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         });
       });
 
+      function runVerificationCommands() {
+        return document.getElementById("verification-commands").value
+          .split("\\n")
+          .map((command) => command.trim())
+          .filter(Boolean);
+      }
+
       document.getElementById("preview-proposal")?.addEventListener("click", () => {
         vscode.postMessage({ type: "previewProposal" });
       });
 
       document.getElementById("apply-proposal")?.addEventListener("click", () => {
-        vscode.postMessage({ type: "applyProposal" });
+        vscode.postMessage({ type: "applyProposal", verificationCommands: runVerificationCommands() });
       });
 
       document.getElementById("apply-without-verification")?.addEventListener("click", () => {

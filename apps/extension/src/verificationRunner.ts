@@ -47,6 +47,10 @@ function truncateOutput(output: string, maxLength: number): string {
   return output.length > maxLength ? `${output.slice(0, maxLength)}...` : output;
 }
 
+function evidenceOutput(result: CommandResult): string {
+  return [`Exit code: ${result.exitCode}`, result.output].filter(Boolean).join("\n");
+}
+
 export async function runVerificationCommands(input: RunVerificationCommandsInput): Promise<VerificationEvidence[]> {
   const runCommand = input.runCommand ?? defaultRunCommand;
   const maxOutputLength = input.maxOutputLength ?? 4000;
@@ -58,7 +62,7 @@ export async function runVerificationCommands(input: RunVerificationCommandsInpu
       kind: verificationKind(command),
       label: command,
       status: result.exitCode === 0 ? "passed" : "failed",
-      output: truncateOutput(result.output, maxOutputLength)
+      output: truncateOutput(evidenceOutput(result), maxOutputLength)
     });
   }
 

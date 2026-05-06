@@ -95,10 +95,12 @@ describe("extension panel HTML", () => {
     expect(html).toContain("$0.02");
     expect(html).toContain("Change Capsules");
     expect(html).toContain("Verification Gate");
+    expect(html).toContain("verification-commands");
+    expect(html).toContain("runVerificationCommands");
     expect(html).toContain("npm test");
     expect(html).toContain("15 passed");
     expect(html).toContain("Preview Diff");
-    expect(html).toContain("Apply & Run Verification");
+    expect(html).toContain("Apply & Run Selected Verification");
     expect(html).toContain("Apply Without Verification");
     expect(html).toContain("npm run typecheck");
     expect(html).toContain("Review 2 files before applying.");

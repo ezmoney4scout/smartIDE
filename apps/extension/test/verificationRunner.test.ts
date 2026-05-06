@@ -19,7 +19,7 @@ describe("verification runner", () => {
         kind: "test",
         label: "npm test",
         status: "passed",
-        output: "tests passed"
+        output: "Exit code: 0\ntests passed"
       }
     ]);
   });
@@ -41,7 +41,7 @@ describe("verification runner", () => {
       kind: "build",
       label: "npm run typecheck",
       status: "failed",
-      output: "typecheck fa..."
+      output: "Exit code: 2..."
     });
   });
 });

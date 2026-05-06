@@ -27,6 +27,7 @@ The project starts as a VS Code-compatible extension plus reusable local Agent C
 - Task Spec model
 - Change Capsule model
 - Verification evidence model
+- Configurable Verification Gate
 - Local project storage
 - Memory Update Proposal UI
 - Local Memory RAG archive
@@ -115,7 +116,7 @@ Source code stays in the local workspace. API keys should be stored through edit
 
 ## Agent Task Flow
 
-The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. It retrieves related records from the local Memory RAG archive before planning, then shows those retrieved memories in the Context Ledger alongside path, source, reason, token estimate, and pinned/excluded flags. The Budget and Limits section shows the active budget mode, cost ceiling, token limits, and estimated task cost when available. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows the verification commands that may run. Users can choose **Apply & Run Verification** or **Apply Without Verification**. Verification output is shown in the panel and truncated before rendering to keep the UI responsive. The panel also shows Memory Update Proposals and only writes them into local project memory after user confirmation.
+The VS Code-compatible extension panel accepts a task goal, creates a local Agent Core lifecycle, and prepares source-file change proposals. It retrieves related records from the local Memory RAG archive before planning, then shows those retrieved memories in the Context Ledger alongside path, source, reason, token estimate, and pinned/excluded flags. The Budget and Limits section shows the active budget mode, cost ceiling, token limits, and estimated task cost when available. Users can preview original files against proposed content with VS Code's diff view before applying. Before applying, the panel shows editable verification commands. Users can choose **Apply & Run Selected Verification** or **Apply Without Verification**. Verification output includes exit codes and is truncated before rendering to keep the UI responsive. The panel also shows Memory Update Proposals and only writes them into local project memory after user confirmation.
 
 Provider responses can drive real source edits by returning structured JSON:
 
@@ -153,6 +154,5 @@ See `CONTRIBUTING.md` and `docs/contributors/development.md`.
 
 ## Roadmap
 
-- Verification runners
 - Debug Hypothesis Mode
 - Standalone desktop IDE exploration
