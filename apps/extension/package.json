@@ -52,7 +52,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/extension.ts --format esm --external vscode --tsconfig tsconfig.build.json --clean",
+    "build": "tsup --config tsup.config.ts",
     "package:vsix": "mkdir -p ../../dist/vsix && vsce package --no-dependencies --out ../../dist/vsix/smartide-0.1.0.vsix",
     "typecheck": "tsc --noEmit"
   },

@@ -3,6 +3,7 @@ test/**
 smoke/**
 tsconfig.json
 tsconfig.build.json
+tsup.config.ts
 *.tsbuildinfo
 node_modules/**
 coverage/**
