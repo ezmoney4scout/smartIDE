@@ -80,6 +80,7 @@ describe("extension panel HTML", () => {
     });
 
     expect(html).toContain("AI IDE Agent");
+    expect(html).toContain("Describe what to build");
     expect(html).toContain("Kimi");
     expect(html).toContain("kimi-k2.5");
     expect(html).toContain("Kimi requires an API key.");

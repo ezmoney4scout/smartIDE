@@ -92,7 +92,7 @@ function sourceUri(vscodeApi: typeof vscode, workspaceRootUri: vscode.Uri, propo
   return vscodeApi.Uri.joinPath(workspaceRootUri, ...proposal.targetPath.split("/"));
 }
 
-export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
+export async function initializeAgentWebview(vscodeApi: typeof vscode, webview: vscode.Webview): Promise<void> {
   const workspaceRoot = vscodeApi.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
   const workspaceRootUri = vscodeApi.workspace.workspaceFolders?.[0]?.uri ?? vscodeApi.Uri.file(workspaceRoot);
   let providerConfig = resolveExtensionProviderRuntimeConfig(
@@ -131,7 +131,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
   }
 
   function renderCurrentPanel(errorMessage?: string): void {
-    panel.webview.html = renderPanelHtml({
+    webview.html = renderPanelHtml({
       state: currentLifecycle?.state ?? "Draft",
       taskGoal: currentLifecycle?.taskSpec.goal ?? "",
       contextCount: currentLifecycle?.contextLedger.length ?? 0,
@@ -237,14 +237,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     renderCurrentPanel();
   }
 
-  const panel = vscodeApi.window.createWebviewPanel(
-    "aiIdeAgent",
-    "smartIDE",
-    vscodeApi.ViewColumn.Beside,
-    { enableScripts: true }
-  );
-
-  panel.webview.html = renderPanelHtml({
+  webview.html = renderPanelHtml({
     state: "Draft",
     taskGoal: "",
     contextCount: 0,
@@ -254,7 +247,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     ...providerSettingsViewModel()
   });
 
-  panel.webview.onDidReceiveMessage(async (message) => {
+  webview.onDidReceiveMessage(async (message) => {
     if (!isPanelMessage(message)) {
       return;
     }
@@ -363,7 +356,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     const goal = message.goal.trim();
     approvalMode = normalizeApprovalMode(message.approvalMode);
     if (!goal) {
-      panel.webview.html = renderPanelHtml({
+      webview.html = renderPanelHtml({
         state: "Blocked",
         taskGoal: "",
         contextCount: 0,
@@ -377,7 +370,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
     }
 
     if (!providerStatus.ok) {
-      panel.webview.html = renderPanelHtml({
+      webview.html = renderPanelHtml({
         state: "Blocked",
         taskGoal: goal,
         contextCount: 0,
@@ -431,7 +424,7 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
         await runVerificationPlan();
       }
     } catch (error) {
-      panel.webview.html = renderPanelHtml({
+      webview.html = renderPanelHtml({
         state: "Blocked",
         taskGoal: goal,
         contextCount: 0,
@@ -443,4 +436,15 @@ export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
       });
     }
   });
+}
+
+export async function openAgentPanel(vscodeApi: typeof vscode): Promise<void> {
+  const panel = vscodeApi.window.createWebviewPanel(
+    "aiIdeAgent",
+    "smartIDE",
+    vscodeApi.ViewColumn.Beside,
+    { enableScripts: true }
+  );
+
+  await initializeAgentWebview(vscodeApi, panel.webview);
 }

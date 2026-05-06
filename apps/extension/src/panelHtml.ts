@@ -260,7 +260,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       </header>
 
       <form id="task-form">
-        <textarea id="task-goal" name="goal" aria-label="Task goal">${taskGoal}</textarea>
+        <textarea id="task-goal" name="goal" aria-label="Task goal" placeholder="Describe what to build">${taskGoal}</textarea>
         <label for="approval-mode">Automation Mode
           <select id="approval-mode" name="approvalMode">
             <option value="manual"${approvalMode === "manual" ? " selected" : ""}>Human Approval</option>

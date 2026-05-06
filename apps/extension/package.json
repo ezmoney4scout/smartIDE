@@ -16,17 +16,48 @@
     "vscode": "^1.96.0"
   },
   "categories": ["Other"],
-  "activationEvents": ["onCommand:aiIdeAgent.openPanel"],
+  "activationEvents": [
+    "onCommand:aiIdeAgent.openPanel",
+    "onCommand:aiIdeAgent.focusChat",
+    "onView:aiIdeAgent.chatView",
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
       {
         "command": "aiIdeAgent.openPanel",
         "title": "AI IDE Agent: Open Panel"
+      },
+      {
+        "command": "aiIdeAgent.focusChat",
+        "title": "AI IDE Agent: Focus Chat"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiIdeAgent",
+          "title": "smartIDE",
+          "icon": "media/smartide.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiIdeAgent": [
+        {
+          "id": "aiIdeAgent.chatView",
+          "name": "Chat"
+        }
+      ]
+    },
     "configuration": {
       "title": "AI IDE Agent",
       "properties": {
+        "aiIdeAgent.openOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the smartIDE Chat sidebar when VS Code starts."
+        },
         "aiIdeAgent.provider": {
           "type": "string",
           "default": "mock",

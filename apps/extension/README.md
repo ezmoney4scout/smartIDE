@@ -1,6 +1,6 @@
 # smartIDE
 
-smartIDE is a local-first AI IDE Agent for VS Code-compatible editors. It connects third-party LLM providers to a visible engineering workflow with panel-based provider settings, Context Ledger entries, local Memory RAG retrieval, task specs, budget limits, source change proposals, diff preview, Pre-write Code Review, Human Approval / Full Automation write modes, configurable verification evidence, and user-approved Memory Update Proposals.
+smartIDE is a local-first AI IDE Agent for VS Code-compatible editors. It connects third-party LLM providers to a visible engineering workflow with an Activity Bar Chat sidebar, panel-based provider settings, Context Ledger entries, local Memory RAG retrieval, task specs, budget limits, source change proposals, diff preview, Pre-write Code Review, Human Approval / Full Automation write modes, configurable verification evidence, and user-approved Memory Update Proposals.
 
 ## Install From VSIX
 
@@ -18,6 +18,8 @@ dist/vsix/smartide-0.1.0.vsix
 ```
 
 In VS Code, run **Extensions: Install from VSIX...** and select that file.
+
+The smartIDE Chat sidebar opens on startup by default. To focus it manually, run **AI IDE Agent: Focus Chat** from the command palette. Set `aiIdeAgent.openOnStartup` to `false` to keep it hidden until requested.
 
 ## Provider Settings
 
