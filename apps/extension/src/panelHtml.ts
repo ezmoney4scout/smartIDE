@@ -59,7 +59,6 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
   const providerName = escapeHtml(viewModel.providerName ?? "Mock");
   const providerId = viewModel.providerId ?? "mock";
   const providerBaseUrl = escapeHtml(viewModel.providerBaseUrl ?? "");
-  const providerDefaultModel = escapeHtml(viewModel.providerDefaultModel ?? "");
   const modelName = escapeHtml(viewModel.modelName ?? "mock-model");
   const budget = viewModel.budget;
   const providerStatusMessage = viewModel.providerStatusMessage ? escapeHtml(viewModel.providerStatusMessage) : "";
@@ -99,6 +98,8 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       : "mock";
   const selectedModelPresets = getProviderModelPresets(modelPresetProviderId);
   const selectedModelId = viewModel.providerDefaultModel || viewModel.modelName || "";
+  const selectedModelPreset = selectedModelPresets.find((preset) => preset.id === selectedModelId);
+  const shouldShowCustomModel = selectedModelPresets.length === 0 || !selectedModelPreset;
 
   return `<!doctype html>
 <html lang="en">
@@ -261,6 +262,10 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         font-size: 12px;
       }
 
+      .hidden {
+        display: none;
+      }
+
       pre {
         overflow-x: auto;
         border-radius: 4px;
@@ -304,20 +309,20 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
                   .join("")}
               </select>
             </label>
-            <label for="ai-model-preset">Recommended Models
+            <label for="ai-model-preset">Model
               <select id="ai-model-preset" name="modelPreset">
-                <option value="">Custom model</option>
                 ${selectedModelPresets
                   .map((preset) => {
-                    const label = `${preset.label} (${preset.id}) - ${preset.description}`;
+                    const label = `${preset.label} - ${preset.description}`;
                     return `<option value="${escapeHtml(preset.id)}"${preset.id === selectedModelId ? " selected" : ""}>${escapeHtml(label)}</option>`;
                   })
                   .join("")}
+                <option value=""${shouldShowCustomModel ? " selected" : ""}>Custom model</option>
               </select>
               <span id="model-preset-hint" class="field-hint"></span>
             </label>
-            <label for="ai-model">Custom Model
-              <input id="ai-model" name="defaultModel" type="text" value="${providerDefaultModel}" placeholder="${modelName}">
+            <label id="custom-model-field" for="ai-model" class="${shouldShowCustomModel ? "" : "hidden"}" aria-hidden="${shouldShowCustomModel ? "false" : "true"}">Custom Model
+              <input id="ai-model" name="defaultModel" type="text" value="${escapeHtml(selectedModelId)}" placeholder="${modelName}">
             </label>
             <label for="ai-base-url">Base URL
               <input id="ai-base-url" name="baseUrl" type="text" value="${providerBaseUrl}" placeholder="Provider default">
@@ -450,6 +455,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
       const providerSelect = document.getElementById("ai-provider");
       const modelPresetSelect = document.getElementById("ai-model-preset");
       const modelPresetHint = document.getElementById("model-preset-hint");
+      const customModelField = document.getElementById("custom-model-field");
       const modelInput = document.getElementById("ai-model");
       const apiKeyInput = document.getElementById("ai-api-key");
 
@@ -473,17 +479,30 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         apiKeyInput.placeholder = ${escapeScriptJson(viewModel.apiKeyConfigured ? "Configured - enter a new key to replace" : "Required for hosted providers")};
       }
 
+      function toggleCustomModelField(showCustomModel) {
+        customModelField.classList.toggle("hidden", !showCustomModel);
+        customModelField.setAttribute("aria-hidden", String(!showCustomModel));
+        modelInput.tabIndex = showCustomModel ? 0 : -1;
+      }
+
       function renderModelPresetOptions(providerId, selectedModel) {
         const presets = providerModelPresets[providerId] ?? [];
-        modelPresetSelect.replaceChildren(new Option("Custom model", ""));
+        modelPresetSelect.replaceChildren();
+        let selectedPreset;
         for (const preset of presets) {
-          const option = new Option(\`\${preset.label} (\${preset.id}) - \${preset.description}\`, preset.id);
+          const option = new Option(\`\${preset.label} - \${preset.description}\`, preset.id);
           option.selected = preset.id === selectedModel;
+          if (option.selected) {
+            selectedPreset = preset;
+          }
           modelPresetSelect.add(option);
         }
-        const selectedPreset = presets.find((preset) => preset.id === modelPresetSelect.value);
+        const customOption = new Option("Custom model", "");
+        customOption.selected = !selectedPreset;
+        modelPresetSelect.add(customOption);
         modelPresetHint.textContent = describeModelPreset(selectedPreset);
         updateApiKeyPlaceholder(providerId, selectedPreset);
+        toggleCustomModelField(!selectedPreset);
       }
 
       providerSelect.addEventListener("change", () => {
@@ -503,6 +522,7 @@ export function renderPanelHtml(viewModel: PanelViewModel): string {
         }
         modelPresetHint.textContent = describeModelPreset(selectedPreset);
         updateApiKeyPlaceholder(providerSelect.value, selectedPreset);
+        toggleCustomModelField(!selectedPreset);
       });
 
       renderModelPresetOptions(providerSelect.value, modelInput.value);

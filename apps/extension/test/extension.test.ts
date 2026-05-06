@@ -86,8 +86,11 @@ describe("extension panel HTML", () => {
     expect(html).toContain("Kimi requires an API key.");
     expect(html).toContain("Provider Settings");
     expect(html).toContain("ai-provider");
-    expect(html).toContain("Recommended Models");
+    expect(html).toContain("Model");
     expect(html).toContain("ai-model-preset");
+    expect(html).toContain("custom-model-field");
+    expect(html).toContain("hidden");
+    expect(html).toContain("toggleCustomModelField");
     expect(html).toContain("Local demo - no API key needed");
     expect(html).toContain("Free model - provider API key required");
     expect(html).toContain("glm-4.7-flash");
