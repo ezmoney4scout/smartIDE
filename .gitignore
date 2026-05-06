@@ -1,5 +1,6 @@
 .superpowers/
 .worktrees/
+.vscode-test/
 .ai-ide-agent/
 node_modules/
 dist/

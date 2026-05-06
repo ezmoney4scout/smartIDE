@@ -53,6 +53,12 @@ npm run package:extension
 
 The VSIX is written to `dist/vsix/smartide-0.1.0.vsix` and can be installed through **Extensions: Install from VSIX...** in VS Code.
 
+To run the VS Code Extension Host smoke test:
+
+```bash
+npm run smoke:extension
+```
+
 ## Provider Configuration
 
 The project can run with a local mock provider, hosted OpenAI-compatible providers, or built-in presets for Minimax, Kimi, and GLM.
